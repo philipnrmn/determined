@@ -29,7 +29,7 @@ from determined.pytorch import samplers
 
 _Array = Union[np.ndarray, torch.Tensor]
 _Data = Union[Dict[str, _Array], Sequence[_Array], _Array]
-TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
+TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor, None]
 
 _worker_init_fn_t = Optional[Callable[[int], None]]
 T = TypeVar("T")
@@ -114,7 +114,7 @@ class DataLoader:
                 "The case of batch_sampler=None and batch_size=None is not supported through "
                 "det.pytorch.DataLoader(). For customizing your data loader beyond what is "
                 "supported by det.pytorch.DataLoader, see the in-depth guide at: "
-                "docs.determined.ai/latest/reference/api/pytorch-samplers.html"
+                "docs.determined.ai/latest/reference/api/api-pytorch-samplers.html"
             )
 
         # BEGIN VENDORED CODE FROM PYTORCH

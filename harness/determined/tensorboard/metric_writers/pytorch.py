@@ -40,3 +40,6 @@ class TorchWriter(tensorboard.MetricWriter):
     def reset(self) -> None:
         if "flush" in dir(self.writer):
             self.writer.flush()
+
+    def close(self) -> None:
+        self.writer.close()

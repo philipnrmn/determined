@@ -1,0 +1,34 @@
+name: cifar10_pipeline_parallel
+debug: false
+hyperparameters:
+  global_batch_size: 512
+  data_parallel_world_size:  2
+  deepspeed: true
+  deepspeed_config: ds_config.json
+  pipe_parallel_size: 2
+  part: parameters
+environment:
+    #force_pull_image: true
+    #environment_variables:
+    #    - CUDA_LAUNCH_BLOCKING=1
+    #    - NCCL_BLOCKING_WAIT=1
+    image:
+        gpu: liamdetermined/development:deepspeed
+bind_mounts:
+    - host_path: /tmp
+      container_path: /data
+    - host_path: /tmp
+      container_path: /root/.cache
+resources:
+  slots_per_trial: 4
+records_per_epoch: 50000
+searcher:
+  name: single
+  metric: loss
+  smaller_is_better: false
+  max_length:
+    batches: 20
+entrypoint: model_def:CIFARTrial
+min_validation_period:
+    batches: 10
+max_restarts: 0

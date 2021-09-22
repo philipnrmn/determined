@@ -2,6 +2,7 @@ import abc
 import contextlib
 import functools
 import logging
+import os
 import shutil
 import socket
 import tempfile
@@ -34,6 +35,15 @@ class TrialContext(metaclass=abc.ABCMeta):
                 local_size=horovod.hvd.local_size(),
                 cross_rank=horovod.hvd.cross_rank(),
                 cross_size=horovod.hvd.cross_size(),
+            )
+        elif env.hparams.get("deepspeed", False):
+            rank_info = RankInfo(
+                rank=int(os.environ["RANK"]),
+                size=int(os.environ["WORLD_SIZE"]),
+                local_rank=int(os.environ["LOCAL_RANK"]),
+                local_size=int(os.environ["LOCAL_SIZE"]),
+                cross_rank=int(os.environ["CROSS_RANK"]),
+                cross_size=int(os.environ["CROSS_SIZE"]),
             )
         else:
             rank_info = RankInfo(

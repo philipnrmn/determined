@@ -42,6 +42,7 @@ class _PreemptionWatcher(threading.Thread):
         self._should_quit = False
 
         self._cond = threading.Condition()
+        self._stop_event = threading.Event()
 
         # Set daemon=True, since the requests library only supports blocking reads.  Under the hood,
         # the requests library uses buffered IO on top of the socket, which means that we can't even
@@ -80,25 +81,28 @@ class _PreemptionWatcher(threading.Thread):
                 # Wake the main thread in case it was waiting for the initial response.
                 self._cond.notify()
 
-        # Continuously poll for preemption status to change.  Always retry after network failures;
-        # if the master is unreachable, either user code will exit due to some more critical API
-        # failure, or the user will kill the task.
-        while not self._should_preempt and not self._should_quit:
-            try:
-                self._should_preempt = self._get_preemption(60)
-            except requests.Timeout:
-                logging.warning(
-                    "timeout communicating with preemption API (retrying):", exc_info=True
-                )
-            except Exception:
-                logging.warning(
-                    "failure communicating with preemption API (retrying in 10s):", exc_info=True
-                )
-                time.sleep(10)
+        while not self._stop_event.is_set():
+            # Continuously poll for preemption status to change.  Always retry after network
+            # failures; if the master is unreachable, either user code will exit due to some
+            # more critical API failure, or the user will kill the task.
+            while not self._should_preempt and not self._should_quit:
+                try:
+                    self._should_preempt = self._get_preemption(60)
+                except requests.Timeout:
+                    logging.warning(
+                        "timeout communicating with preemption API (retrying):", exc_info=True
+                    )
+                except Exception:
+                    logging.warning(
+                        "failure communicating with preemption API (retrying in 10s):",
+                        exc_info=True,
+                    )
+                    time.sleep(10)
 
     def close(self) -> None:
         # TODO: For now we have to set daemon=True for the thread, so there's no point in joining.
         # self.join()
+        self._stop_event.set()
         self._should_quit = True
 
     def __enter__(self) -> "_PreemptionWatcher":

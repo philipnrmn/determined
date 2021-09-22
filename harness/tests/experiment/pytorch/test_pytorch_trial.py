@@ -227,6 +227,7 @@ class TestPyTorchTrial:
             hparams=self.hparams,
             workloads=make_workloads("A"),
             trial_seed=self.trial_seed,
+            expose_gpus=True,
         )
         controller.run()
 

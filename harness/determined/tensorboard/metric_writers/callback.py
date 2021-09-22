@@ -15,6 +15,10 @@ class MetricWriter(abc.ABC):
     def reset(self) -> None:
         pass
 
+    @abc.abstractmethod
+    def close(self) -> None:
+        pass
+
 
 class BatchMetricWriter:
     def __init__(self, writer: MetricWriter) -> None:

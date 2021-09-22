@@ -80,15 +80,22 @@ class EnvContext:
 
         # Configure batch sizes.
         slots_per_trial = self.experiment_config.slots_per_trial()
-        if global_batch_size < slots_per_trial:
+        data_parallel_world_size = self.hparams.get("data_parallel_world_size", 1)
+        if data_parallel_world_size < 1:
+            raise AssertionError("data_parallel_world_size must be > 0")
+        if slots_per_trial % data_parallel_world_size > 0:
+            raise AssertionError("slots_per_trial must be a multiple of data_parallel_world_size.")
+        num_replicas = data_parallel_world_size
+
+        if global_batch_size < num_replicas:
             raise AssertionError(
                 "Please set the `global_batch_size` hyperparameter to be greater or equal to the "
                 f"number of slots. Current batch_size: {global_batch_size}, slots_per_trial: "
                 f"{slots_per_trial}."
             )
 
-        per_gpu_batch_size = global_batch_size // slots_per_trial
-        effective_batch_size = per_gpu_batch_size * slots_per_trial
+        per_gpu_batch_size = global_batch_size // num_replicas
+        effective_batch_size = per_gpu_batch_size * num_replicas
         if effective_batch_size != global_batch_size:
             logging.warning(
                 f"`global_batch_size` changed from {global_batch_size} to {effective_batch_size} "

@@ -51,9 +51,17 @@ class PyTorchTrialController(det.TrialController):
         )
         self._check_evaluate_implementation()
 
+        # Set model parallel configuration before building dataloaders.
+        self.mpu = (
+            pytorch.ModelParallelUnit(self.context.distributed)
+            if self.context._mpu is None
+            else self.context._mpu
+        )
+
         # Validation loader will be undefined on process ranks > 0
         # when the user defines `validate_full_dataset()`.
         self.validation_loader = None  # type: Optional[torch.utils.data.DataLoader]
+        self.num_validation_batches = None  # type: Optional[int]
         self._set_data_loaders()
 
         self.wlsq = None  # type: Optional[layers.WorkloadSequencer]
@@ -66,6 +74,8 @@ class PyTorchTrialController(det.TrialController):
     @staticmethod
     def pre_execute_hook(env: det.EnvContext, hvd_config: horovod.HorovodContext) -> None:
         # Initialize the correct horovod.
+        if env.hparams.get("deepspeed", False):
+            hvd_config.use = False
         if hvd_config.use:
             hvd.require_horovod_type("torch", "PyTorchTrial is in use.")
             hvd.init()
@@ -120,9 +130,8 @@ class PyTorchTrialController(det.TrialController):
 
     def _set_data_loaders(self) -> None:
         skip_batches = self.env.latest_batch
-
-        nreplicas = hvd.size() if self.hvd_config.use else 1
-        rank = hvd.rank() if self.hvd_config.use else 0
+        nreplicas = self.mpu.get_data_parallel_world_size()
+        rank = self.mpu.get_data_parallel_rank()
 
         def _dataset_repro_warning(fn: str, data_obj: Any) -> str:
             return (
@@ -142,12 +151,22 @@ class PyTorchTrialController(det.TrialController):
                 repeat=True, skip=skip_batches, num_replicas=nreplicas, rank=rank
             )
         else:
-            # Non-determined DataLoader; ensure the user meant to do this.
-            if not self.context.experimental._data_repro_checks_disabled:
-                raise RuntimeError(_dataset_repro_warning("build_training_data_loader", train_data))
+            if train_data is not None:
+                # Non-determined DataLoader; ensure the user meant to do this.
+                if not self.context.experimental._data_repro_checks_disabled:
+                    raise RuntimeError(
+                        _dataset_repro_warning("build_training_data_loader", train_data)
+                    )
             self.training_loader = train_data
 
-        self.context._epoch_len = len(self.training_loader)
+        self.context._epoch_len = len(self.training_loader) if train_data is not None else None
+        all_epoch_lens = self.context.distributed._zmq_gather(self.context._epoch_len)
+        if self.is_chief:
+            all_epoch_lens = [le for le in all_epoch_lens if le is not None]
+            if min(all_epoch_lens) < max(all_epoch_lens):
+                logging.warning("Training dataloader length inconsistent across ranks.")
+            self.context._epoch_len = min(all_epoch_lens)
+        self.context._epoch_len = self.context.distributed._zmq_broadcast(self.context._epoch_len)
 
         validation_data = self.trial.build_validation_data_loader()
         if self._evaluate_batch_defined():
@@ -156,11 +175,12 @@ class PyTorchTrialController(det.TrialController):
                     repeat=False, skip=0, num_replicas=nreplicas, rank=rank
                 )
             else:
-                # Non-determined DataLoader; ensure the user meant to do this.
-                if not self.context.experimental._data_repro_checks_disabled:
-                    raise RuntimeError(
-                        _dataset_repro_warning("build_validation_data_loader", validation_data)
-                    )
+                if validation_data is not None:
+                    # Non-determined DataLoader; ensure the user meant to do this.
+                    if not self.context.experimental._data_repro_checks_disabled:
+                        raise RuntimeError(
+                            _dataset_repro_warning("build_validation_data_loader", validation_data)
+                        )
                 self.validation_loader = validation_data
         elif self.is_chief:
             if isinstance(validation_data, pytorch.DataLoader):
@@ -182,7 +202,10 @@ class PyTorchTrialController(det.TrialController):
         #
         # We create it before loading state because we don't want the training_iterator shuffling
         # values after we load state.
-        self.training_iterator = iter(self.training_loader)
+        self.training_iterator = (
+            iter(self.training_loader) if self.training_loader is not None else None
+        )
+
         try:
             # If a load path is provided load weights and restore the data location.
             if self.env.latest_checkpoint is not None:
@@ -204,10 +227,16 @@ class PyTorchTrialController(det.TrialController):
                         callback.on_training_start()
                 self._run()
 
+                for callback in self.callbacks.values():
+                    with self.prof.record_timing(
+                            f"callbacks.{callback.__class__.__name__}.trial_cleanup"
+                    ):
+                        callback.trial_cleanup()
         finally:
             # Explicitly trigger the training iterator's shutdown (which happens in __del__).
             # See the rather long note in pytorch/torch/utils/data/dataloader.py.
-            del self.training_iterator
+            if self.training_iterator is not None:
+                del self.training_iterator
 
     def _run(self) -> None:
         assert self.workloads is not None
@@ -235,14 +264,27 @@ class PyTorchTrialController(det.TrialController):
                     action = "checkpointing"
                     if self.is_chief:
                         with self._generic._storage_mgr.store_path() as (storage_id, path):
+                            # Broadcast checkpoint path to all ranks.
+                            self.context.distributed._zmq_broadcast(path)
                             self._save(pathlib.Path(path))
+                            # Wait for save to finish on all ranks and gather all resources to
+                            # report to master.
+                            all_resources = self.context.distributed._zmq_gather(
+                                storage.StorageManager._list_directory(path)
+                            )
+                            resources = {k: v for d in all_resources for k, v in d.items()}
                             response = {
                                 "uuid": storage_id,
-                                "resources": storage.StorageManager._list_directory(path),
+                                "resources": resources,
                                 "framework": f"torch-{torch.__version__}",
                                 "format": "pickle",
                             }
                     else:
+                        path = self.context.distributed._zmq_broadcast(None)
+                        self._save(pathlib.Path(path))
+                        _ = self.context.distributed._zmq_gather(
+                            storage.StorageManager._list_directory(path)
+                        )
                         response = {}
 
                 else:
@@ -254,35 +296,43 @@ class PyTorchTrialController(det.TrialController):
             response_func(response)
 
     def get_epoch_idx(self, batch_id: int) -> int:
-        return batch_id // len(self.training_loader)
+        self.context._epoch_len = cast(int, self.context._epoch_len)
+        return batch_id // self.context._epoch_len
 
     def _average_training_metrics(
         self, per_batch_metrics: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """Average training metrics across GPUs"""
-        check.true(self.hvd_config.use, "Can only average training metrics in multi-GPU training.")
+        check.true(
+            self.context.distributed.get_size() > 0,
+            "Can only average training metrics in multi-GPU training.",
+        )
         metrics_timeseries = util._list_to_dict(per_batch_metrics)
 
         # combined_timeseries is: dict[metric_name] -> 2d-array.
         # A measurement is accessed via combined_timeseries[metric_name][process_idx][batch_idx].
-        combined_timeseries, _ = self._combine_metrics_across_processes(
+        combined_timeseries, combined_num_batches = self._combine_metrics_across_processes(
             metrics_timeseries, num_batches=len(per_batch_metrics)
         )
 
-        # If the value for a metric is a single-element array, the averaging process will
-        # change that into just the element. We record what metrics are single-element arrays
-        # so we can wrap them in an array later (for perfect compatibility with non-averaging
-        # codepath).
-        array_metrics = []
-        for metric_name in per_batch_metrics[0].keys():
-            if isinstance(per_batch_metrics[0][metric_name], np.ndarray):
-                array_metrics.append(metric_name)
-
         if self.is_chief:
+            # We can safely cast variables here because this is all happening on the chief, which
+            # is where we gather metrics.
+            combined_timeseries = cast(Dict[str, Any], combined_timeseries)
+            combined_num_batches = cast(List[int], combined_num_batches)
+            # If the value for a metric is a single-element array, the averaging process will
+            # change that into just the element. We record what metrics are single-element arrays
+            # so we can wrap them in an array later (for perfect compatibility with non-averaging
+            # codepath).
+            array_metrics = []
+            for metric_name in combined_timeseries.keys():
+                process_batches = cast(List[List[Any]], combined_timeseries[metric_name])
+                if isinstance(process_batches[0][0], np.ndarray):
+                    array_metrics.append(metric_name)
             combined_timeseries_type = Dict[str, List[List[Any]]]
             combined_timeseries = cast(combined_timeseries_type, combined_timeseries)
-            num_batches = len(per_batch_metrics)
-            num_processes = hvd.size()
+            num_batches = combined_num_batches[0]
+            num_processes = self.mpu.get_data_parallel_world_size()
             averaged_metrics_timeseries = {}  # type: Dict[str, List]
 
             for metric_name in combined_timeseries.keys():
@@ -357,14 +407,20 @@ class PyTorchTrialController(det.TrialController):
         for batch_idx in range(start, end):
             batch_start_time = time.time()
             self.prof.update_batch_idx(batch_idx)
-            with self.prof.record_timing("dataloader_next", requires_sync=False):
-                batch = next(self.training_iterator)
-            batch_inputs = self.trial.get_batch_length(batch)
-            num_inputs += batch_inputs
+            if self.training_iterator is not None:
+                with self.prof.record_timing("dataloader_next", requires_sync=False):
+                    batch = next(self.training_iterator)
+                batch_inputs = self.trial.get_batch_length(batch)
 
-            if self.context.experimental._auto_to_device:
-                with self.prof.record_timing("to_device", accumulate=True):
-                    batch = self.context.to_device(batch)
+                if self.context.experimental._auto_to_device:
+                    with self.prof.record_timing("to_device", accumulate=True):
+                        batch = self.context.to_device(batch)
+            else:
+                batch = None
+                batch_inputs = None
+            if self.is_chief:
+                assert batch_inputs > 0, "Batch must be non-empty on chief GPU."
+            batch_inputs = self.context.distributed._zmq_broadcast(batch_inputs)
 
             self.context._current_batch_idx = batch_idx
             if self.context.is_epoch_start():
@@ -390,44 +446,50 @@ class PyTorchTrialController(det.TrialController):
                         epoch_idx=self.get_epoch_idx(batch_idx),
                         batch_idx=batch_idx,
                     )
+
             if self._should_update_scaler():
                 self.context._scaler.update()
-            if isinstance(tr_metrics, torch.Tensor):
-                tr_metrics = {"loss": tr_metrics}
-            check.is_instance(
-                tr_metrics,
-                dict,
-                "train_batch() must return a dictionary "
-                f"mapping string names to Tensor metrics, got {type(tr_metrics)}",
-            )
 
             # Step learning rate of a pytorch.LRScheduler.
             with self.prof.record_timing("step_lr_schedulers"):
                 for lr_scheduler in self.context.lr_schedulers:
                     self._auto_step_lr_scheduler_per_batch(batch_idx, lr_scheduler)
 
-            with self.prof.record_timing("from_device"):
-                for name, metric in tr_metrics.items():
-                    # Convert PyTorch metric values to NumPy, so that
-                    # `det.util.encode_json` handles them properly without
-                    # needing a dependency on PyTorch.
-                    if isinstance(metric, torch.Tensor):
-                        metric = metric.cpu().detach().numpy()
-                    tr_metrics[name] = metric
+            if self.mpu.should_report_metrics():
+                if isinstance(tr_metrics, torch.Tensor):
+                    tr_metrics = {"loss": tr_metrics}
+                check.is_instance(
+                    tr_metrics,
+                    dict,
+                    "train_batch() must return a dictionary "
+                    f"mapping string names to Tensor metrics, got {type(tr_metrics)}",
+                )
 
-            batch_dur = time.time() - batch_start_time
-            samples_per_second = batch_inputs / batch_dur
-            if self.hvd_config.use:
-                samples_per_second *= hvd.size()
-            self.prof.record_metric("samples_per_second", samples_per_second)
-            per_batch_metrics.append(tr_metrics)
+                with self.prof.record_timing("from_device"):
+                    for name, metric in tr_metrics.items():
+                        # Convert PyTorch metric values to NumPy, so that
+                        # `det.util.encode_json` handles them properly without
+                        # needing a dependency on PyTorch.
+                        if isinstance(metric, torch.Tensor):
+                            metric = metric.cpu().detach().numpy()
+                        tr_metrics[name] = metric
+                    per_batch_metrics.append(tr_metrics)
+
+                num_inputs += batch_inputs
+                batch_dur = time.time() - batch_start_time
+                samples_per_second = (
+                    self.mpu.get_data_parallel_world_size() * batch_inputs / batch_dur
+                )
+                self.prof.record_metric("samples_per_second", samples_per_second)
 
         # Aggregate and reduce training metrics from all the training processes.
-        if self.hvd_config.use and self.hvd_config.average_training_metrics:
+        if self.context.experimental._use_deepspeed or (
+            self.hvd_config.use and self.hvd_config.average_training_metrics
+        ):
             with self.prof.record_timing("average_training_metrics"):
                 per_batch_metrics = self._average_training_metrics(per_batch_metrics)
-        if self.hvd_config.use:
-            num_inputs *= hvd.size()
+        if self.mpu.get_data_parallel_world_size() > 1:
+            num_inputs *= self.mpu.get_data_parallel_world_size()
         metrics = det.util.make_metrics(num_inputs, per_batch_metrics)
 
         # Ignore batch_metrics entirely for custom reducers; there's no guarantee that per-batch
@@ -479,39 +541,74 @@ class PyTorchTrialController(det.TrialController):
             keys = None
             batch_metrics = []
 
-            self.validation_loader = cast(torch.utils.data.DataLoader, self.validation_loader)
-            check.gt(len(self.validation_loader), 0)
+            self.validation_iterator = (
+                iter(self.validation_loader) if self.validation_loader is not None else None
+            )
+
+            if self.validation_loader is not None:
+                self.num_validation_batches = len(self.validation_loader)
+                check.gt(self.num_validation_batches, 0)
+
+            # TODO (liam): really we need to broadcast the validation_loader length to all
+            # ranks in the same model parallel group.
+            all_num_val_batches = self.context.distributed._zmq_gather(self.num_validation_batches)
+            if self.is_chief:
+                self.num_validation_batches = min(
+                    [le for le in all_num_val_batches if le is not None]
+                )
+            self.num_validation_batches = cast(
+                int, self.context.distributed._zmq_broadcast(self.num_validation_batches)
+            )
+
             for callback in self.callbacks.values():
                 callback.on_validation_epoch_start()
-            for idx, batch in enumerate(self.validation_loader):
-                if self.context.experimental._auto_to_device:
-                    batch = self.context.to_device(batch)
-                num_inputs += self.trial.get_batch_length(batch)
+
+            for idx in range(self.num_validation_batches):
+                if self.validation_iterator is not None:
+                    batch = next(self.validation_iterator)
+                    if self.context.experimental._auto_to_device:
+                        batch = self.context.to_device(batch)
+                else:
+                    batch = None
+                batch_inputs = self.trial.get_batch_length(batch) if batch is not None else None
+
+                if self.is_chief:
+                    batch_inputs = cast(int, batch_inputs)
+                    assert batch_inputs > 0, "Batch must be non-empty on chief GPU."
+                batch_inputs = cast(int, self.context.distributed._zmq_broadcast(batch_inputs))
+                num_inputs += batch_inputs
 
                 if has_param(self.trial.evaluate_batch, "batch_idx", 2):
                     vld_metrics = self.trial.evaluate_batch(batch=batch, batch_idx=idx)
                 else:
                     vld_metrics = self.trial.evaluate_batch(batch=batch)  # type: ignore
                 # Verify validation metric names are the same across batches.
-                if keys is None:
-                    keys = vld_metrics.keys()
-                else:
-                    check.eq(
-                        keys,
-                        vld_metrics.keys(),
-                        "Validation metric names must match across all batches of data.",
+                if self.mpu.should_report_metrics():
+                    if keys is None:
+                        keys = vld_metrics.keys()
+                    else:
+                        check.eq(
+                            keys,
+                            vld_metrics.keys(),
+                            "Validation metric names must match across all batches of data.",
+                        )
+                    check.is_instance(
+                        vld_metrics,
+                        dict,
+                        "validation_metrics() must return a "
+                        "dictionary of string names to Tensor "
+                        "metrics",
                     )
-                check.is_instance(
-                    vld_metrics,
-                    dict,
-                    "validation_metrics() must return a "
-                    "dictionary of string names to Tensor "
-                    "metrics",
-                )
-                # TODO: For performance perform -> cpu() only at the end of validation.
-                batch_metrics.append(self._convert_metrics_to_numpy(vld_metrics))
-                if self.env.test_mode:
-                    break
+                    # TODO: For performance perform -> cpu() only at the end of validation.
+                    batch_metrics.append(self._convert_metrics_to_numpy(vld_metrics))
+                    if self.env.test_mode:
+                        break
+            # TODO(liam): gather by model parallel group.
+            all_keys = self.context.distributed._zmq_gather(keys if keys is None else list(keys))
+            if self.is_chief:
+                all_keys = [k for k in all_keys if k is not None]
+                keys = all_keys[0]
+            keys = self.context.distributed._zmq_broadcast(keys)
 
             for callback in self.callbacks.values():
                 callback.on_validation_epoch_end(batch_metrics)
@@ -522,13 +619,18 @@ class PyTorchTrialController(det.TrialController):
                 metrics_reducers=self._prepare_metrics_reducers(keys=keys),
             )
 
-            if self.hvd_config.use:
-                num_inputs *= hvd.size()
+            if self.mpu.get_data_parallel_world_size() > 1:
+                num_inputs *= self.mpu.get_data_parallel_world_size()
+
+            if self.validation_iterator is not None:
+                del self.validation_iterator
 
         else:
             check.true(self._evaluate_full_dataset_defined())
-            self.validation_loader = cast(torch.utils.data.DataLoader, self.validation_loader)
             if self.is_chief:
+                self.validation_loader = cast(torch.utils.data.DataLoader, self.validation_loader)
+                num_inputs = self.context.get_per_slot_batch_size() * len(self.validation_loader)
+            if self.mpu.get_data_parallel_rank() == 0:
                 metrics = self.trial.evaluate_full_dataset(data_loader=self.validation_loader)
 
                 check.is_instance(
@@ -536,7 +638,6 @@ class PyTorchTrialController(det.TrialController):
                 )
 
                 metrics = self._convert_metrics_to_numpy(metrics)
-                num_inputs = self.context.get_per_slot_batch_size() * len(self.validation_loader)
 
         metrics.update(
             self._convert_metrics_to_numpy(self.context.reduce_metrics(for_training=False))
@@ -572,15 +673,16 @@ class PyTorchTrialController(det.TrialController):
 
     def _prepare_metrics_reducers(self, keys: Any) -> Dict[str, pytorch.Reducer]:
         metrics_reducers = {}  # type: Dict[str, pytorch.Reducer]
+
         reducer = self.trial.evaluation_reducer()
         if isinstance(reducer, Dict):
             metrics_reducers = reducer
             check.eq(
-                metrics_reducers.keys(),
-                keys,
+                list(metrics_reducers.keys()),
+                list(keys),
                 "Please provide a single evaluation reducer or "
                 "provide a reducer for every validation metric. "
-                f"Expected keys: {keys}, provided keys: {metrics_reducers.keys()}.",
+                f"Expected keys: {list(keys)}, provided keys: {list(metrics_reducers.keys())}.",
             )
         elif isinstance(reducer, pytorch.Reducer):
             for key in keys:
@@ -597,20 +699,22 @@ class PyTorchTrialController(det.TrialController):
     def _reduce_metrics(
         self, batch_metrics: List, keys: Any, metrics_reducers: Dict[str, pytorch.Reducer]
     ) -> Dict[str, Any]:
-        metrics = {
-            name: pytorch._reduce_metrics(
-                reducer=metrics_reducers[name],
-                metrics=np.stack([b[name] for b in batch_metrics], axis=0),
-                num_batches=None,
-            )
-            for name in keys or []
-        }
+        metrics = {}
+        if self.mpu.should_report_metrics():
+            metrics = {
+                name: pytorch._reduce_metrics(
+                    reducer=metrics_reducers[name],
+                    metrics=np.stack([b[name] for b in batch_metrics], axis=0),
+                    num_batches=None,
+                )
+                for name in keys or []
+            }
 
-        if self.hvd_config.use:
+        if self.context.distributed.get_size() > 1:
             # If using horovod combine metrics across all processes.
             # Only the chief process will receive all the metrics.
             self.validation_loader = cast(torch.utils.data.DataLoader, self.validation_loader)
-            num_batches = len(self.validation_loader)
+            num_batches = cast(int, self.num_validation_batches)
             combined_metrics, batches_per_process = self._combine_metrics_across_processes(
                 metrics, num_batches
             )
@@ -636,7 +740,7 @@ class PyTorchTrialController(det.TrialController):
         self, metrics: Dict[str, Any], num_batches: int
     ) -> Tuple[Optional[Dict[str, Any]], Optional[List[int]]]:
         # The chief receives the metric from every other training process.
-        check.true(self.hvd_config.use)
+        check.true(self.context.distributed.get_size() > 1)
 
         # all_args is a list of [(metrics, num_batches), ...] for each worker.
         all_args = self.context.distributed._zmq_gather((metrics, num_batches))
@@ -644,124 +748,20 @@ class PyTorchTrialController(det.TrialController):
         if not self.is_chief:
             return None, None
 
+        # Remove items without keys in dictionary. These are from intermediate model parallel nodes.
+        all_args = [a for a in all_args if len(a[0])]
+
         # Reshape so e.g. all_metrics = [metrics, metrics, ...].
         all_metrics, all_num_batches = zip(*all_args)
 
         # convert all_metrics from List[Dict[str, Any]] to Dict[str, List[Any]].
-        metrics_lists = {key: [m[key] for m in all_metrics] for key in metrics}
+        keys = all_metrics[0].keys()
+        metrics_lists = {key: [m[key] for m in all_metrics] for key in keys}
 
         return metrics_lists, all_num_batches
 
     def _load(self, load_path: pathlib.Path) -> None:
-        # Backwards compat with older checkpoint formats. List is newest to
-        # oldest known state_dict locations.
-        potential_paths = [
-            ["state_dict.pth"],
-            ["determined", "state_dict.pth"],
-            ["pedl", "state_dict.pth"],
-            ["checkpoint.pt"],
-        ]
-
-        checkpoint: Optional[Dict[str, Any]] = None
-        for ckpt_path in potential_paths:
-            maybe_ckpt = load_path.joinpath(*ckpt_path)
-            if maybe_ckpt.exists():
-                checkpoint = torch.load(str(maybe_ckpt), map_location="cpu")  # type: ignore
-                break
-        if checkpoint is None or not isinstance(checkpoint, dict):
-            return
-
-        for callback in self.callbacks.values():
-            callback.on_checkpoint_load_start(checkpoint)
-
-        if "model_state_dict" in checkpoint:
-            # Backward compatible with older checkpoint format.
-            check.not_in("models_state_dict", checkpoint)
-            check.eq(len(self.context.models), 1)
-            self.context.models[0].load_state_dict(checkpoint["model_state_dict"])
-        else:
-            for idx, model in enumerate(self.context.models):
-                model.load_state_dict(checkpoint["models_state_dict"][idx])
-
-        if "optimizer_state_dict" in checkpoint:
-            # Backward compatible with older checkpoint format.
-            check.not_in("optimizers_state_dict", checkpoint)
-            check.eq(len(self.context.optimizers), 1)
-            self.context.optimizers[0].load_state_dict(checkpoint["optimizer_state_dict"])
-        else:
-            for idx, optimizer in enumerate(self.context.optimizers):
-                optimizer.load_state_dict(checkpoint["optimizers_state_dict"][idx])
-
-        if "lr_scheduler" in checkpoint:
-            # Backward compatible with older checkpoint format.
-            check.not_in("lr_schedulers_state_dict", checkpoint)
-            check.eq(len(self.context.lr_schedulers), 1)
-            self.context.lr_schedulers[0].load_state_dict(checkpoint["lr_scheduler"])
-        else:
-            for idx, lr_scheduler in enumerate(self.context.lr_schedulers):
-                lr_scheduler.load_state_dict(checkpoint["lr_schedulers_state_dict"][idx])
-
-        if "scaler_state_dict" in checkpoint:
-            if self.context._scaler:
-                self.context._scaler.load_state_dict(checkpoint["scaler_state_dict"])
-            else:
-                logging.warning(
-                    "There exists scaler_state_dict in checkpoint but the experiment is not using "
-                    "AMP."
-                )
-        else:
-            if self.context._scaler:
-                logging.warning(
-                    "The experiment is using AMP but scaler_state_dict does not exist in the "
-                    "checkpoint."
-                )
-
-        if "amp_state" in checkpoint:
-            if self.context._use_apex:
-                apex.amp.load_state_dict(checkpoint["amp_state"])
-            else:
-                logging.warning(
-                    "There exists amp_state in checkpoint but the experiment is not using Apex."
-                )
-        else:
-            if self.context._use_apex:
-                logging.warning(
-                    "The experiment is using Apex but amp_state does not exist in the checkpoint."
-                )
-
-        if "rng_state" in checkpoint:
-            rng_state = checkpoint["rng_state"]
-            np.random.set_state(rng_state["np_rng_state"])
-            random.setstate(rng_state["random_rng_state"])
-            torch.random.set_rng_state(rng_state["cpu_rng_state"])
-
-            if torch.cuda.device_count():
-                if "gpu_rng_state" in rng_state:
-                    torch.cuda.set_rng_state(
-                        rng_state["gpu_rng_state"], device=self.context.distributed.get_local_rank()
-                    )
-                else:
-                    logging.warning(
-                        "The system has a gpu but no gpu_rng_state exists in the checkpoint."
-                    )
-            else:
-                if "gpu_rng_state" in rng_state:
-                    logging.warning(
-                        "There exists gpu_rng_state in checkpoint but the system has no gpu."
-                    )
-        else:
-            logging.warning("The checkpoint has no random state to restore.")
-
-        callback_state = checkpoint.get("callbacks", {})
-        for name in self.callbacks:
-            if name in callback_state:
-                self.callbacks[name].load_state_dict(callback_state[name])
-            elif util.is_overridden(self.callbacks[name].load_state_dict, pytorch.PyTorchCallback):
-                logging.warning(
-                    "Callback '{}' implements load_state_dict(), but no callback state "
-                    "was found for that name when restoring from checkpoint. This "
-                    "callback will be initialized from scratch"
-                )
+        self.trial.load(self.context, self.callbacks, load_path)
 
         # Load workload sequencer state.
         wlsq_path = load_path.joinpath("workload_sequencer.pkl")
@@ -770,55 +770,18 @@ class PyTorchTrialController(det.TrialController):
                 self.wlsq.load_state(pickle.load(f))
 
     def _save(self, path: pathlib.Path) -> None:
-        path.mkdir(parents=True, exist_ok=True)
+        if self.context.distributed._is_local_chief:
+            path.mkdir(parents=True, exist_ok=True)
+        self.context.distributed._zmq_gather("Finished creating checkpoint dir in all containers.")
 
-        util.write_user_code(path, self.env.on_cluster)
+        if self.is_chief:
+            util.write_user_code(path, self.env.on_cluster)
 
-        rng_state = {
-            "cpu_rng_state": torch.random.get_rng_state(),
-            "np_rng_state": np.random.get_state(),
-            "random_rng_state": random.getstate(),
-        }
+            if self.wlsq is not None:
+                with path.joinpath("workload_sequencer.pkl").open("wb") as f:
+                    pickle.dump(self.wlsq.get_state(), f)
 
-        if torch.cuda.device_count():
-            rng_state["gpu_rng_state"] = torch.cuda.get_rng_state(
-                self.context.distributed.get_local_rank()
-            )
-
-        # PyTorch uses optimizer objects that take the model parameters to
-        # optimize on construction, so we store and reload the `state_dict()`
-        # of the model and optimizer explicitly (instead of dumping the entire
-        # objects) to avoid breaking the connection between the model and the
-        # optimizer.
-        checkpoint = {
-            "models_state_dict": [model.state_dict() for model in self.context.models],
-            "optimizers_state_dict": [
-                optimizer.state_dict() for optimizer in self.context.optimizers
-            ],
-            "lr_schedulers_state_dict": [
-                lr_scheduler.state_dict() for lr_scheduler in self.context.lr_schedulers
-            ],
-            "callbacks": {name: callback.state_dict() for name, callback in self.callbacks.items()},
-            "rng_state": rng_state,
-        }
-
-        if self.context._scaler:
-            checkpoint["scaler_state_dict"] = self.context._scaler.state_dict()
-
-        if self.context._use_apex:
-            checkpoint["amp_state"] = apex.amp.state_dict()
-
-        for callback in self.callbacks.values():
-            callback.on_checkpoint_save_start(checkpoint)
-
-        torch.save(checkpoint, str(path.joinpath("state_dict.pth")))
-
-        for callback in self.callbacks.values():
-            callback.on_checkpoint_end(str(path))
-
-        if self.wlsq is not None:
-            with path.joinpath("workload_sequencer.pkl").open("wb") as f:
-                pickle.dump(self.wlsq.get_state(), f)
+        self.trial.save(self.context, self.callbacks, path)
 
     def _sync_device(self) -> None:
         torch.cuda.synchronize(self.context.device)
@@ -1012,7 +975,9 @@ class PyTorchTrial(det.Trial):
         """
         return pytorch.Reducer.AVG
 
-    def evaluate_full_dataset(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
+    def evaluate_full_dataset(
+        self, data_loader: Optional[torch.utils.data.DataLoader]
+    ) -> Dict[str, Any]:
         """
         Calculate validation metrics on the entire validation dataset and
         return them as a dictionary mapping metric names to reduced metric
@@ -1060,6 +1025,174 @@ class PyTorchTrial(det.Trial):
             batch (Any): input training or validation data batch object.
         """
         return pytorch.data_length(batch)
+
+    def save(
+        self,
+        context: pytorch.PyTorchTrialContext,
+        callbacks: Dict[str, pytorch.PyTorchCallback],
+        path: pathlib.Path,
+    ) -> None:
+        if not context.distributed._is_chief:
+            return
+        rng_state = {
+            "cpu_rng_state": torch.random.get_rng_state(),
+            "np_rng_state": np.random.get_state(),
+            "random_rng_state": random.getstate(),
+        }
+
+        if torch.cuda.device_count():
+            rng_state["gpu_rng_state"] = torch.cuda.get_rng_state(
+                context.distributed.get_local_rank()
+            )
+
+        # PyTorch uses optimizer objects that take the model parameters to
+        # optimize on construction, so we store and reload the `state_dict()`
+        # of the model and optimizer explicitly (instead of dumping the entire
+        # objects) to avoid breaking the connection between the model and the
+        # optimizer.
+        checkpoint = {
+            "models_state_dict": [model.state_dict() for model in context.models],
+            "optimizers_state_dict": [optimizer.state_dict() for optimizer in context.optimizers],
+            "lr_schedulers_state_dict": [
+                lr_scheduler.state_dict() for lr_scheduler in context.lr_schedulers
+            ],
+            "rng_state": rng_state,
+        }
+
+        if context._scaler:
+            checkpoint["scaler_state_dict"] = context._scaler.state_dict()
+
+        if context._use_apex:
+            checkpoint["amp_state"] = apex.amp.state_dict()
+
+        checkpoint["callbacks"] = {
+            name: callback.state_dict() for name, callback in callbacks.items()
+        }
+
+        for callback in callbacks.values():
+            callback.on_checkpoint_save_start(checkpoint)
+
+        ckpt_name = "state_dict.pth"
+        torch.save(checkpoint, str(path.joinpath(ckpt_name)))
+
+        for callback in callbacks.values():
+            callback.on_checkpoint_end(str(path))
+
+    def load(
+        self,
+        context: pytorch.PyTorchTrialContext,
+        callbacks: Dict[str, pytorch.PyTorchCallback],
+        load_path: pathlib.Path,
+    ) -> None:
+        # Backwards compat with older checkpoint formats. List is newest to
+        # oldest known state_dict locations.
+        potential_paths = [
+            ["state_dict.pth"],
+            ["determined", "state_dict.pth"],
+            ["pedl", "state_dict.pth"],
+            ["checkpoint.pt"],
+        ]
+
+        checkpoint: Optional[Dict[str, Any]] = None
+        for ckpt_path in potential_paths:
+            maybe_ckpt = load_path.joinpath(*ckpt_path)
+            if maybe_ckpt.exists():
+                checkpoint = torch.load(str(maybe_ckpt), map_location="cpu")  # type: ignore
+                break
+        if checkpoint is None or not isinstance(checkpoint, dict):
+            return
+
+        for callback in callbacks.values():
+            callback.on_checkpoint_load_start(checkpoint)
+
+        if "model_state_dict" in checkpoint:
+            # Backward compatible with older checkpoint format.
+            check.not_in("models_state_dict", checkpoint)
+            check.eq(len(context.models), 1)
+            context.models[0].load_state_dict(checkpoint["model_state_dict"])
+        else:
+            for idx, model in enumerate(context.models):
+                model.load_state_dict(checkpoint["models_state_dict"][idx])
+
+        if "optimizer_state_dict" in checkpoint:
+            # Backward compatible with older checkpoint format.
+            check.not_in("optimizers_state_dict", checkpoint)
+            check.eq(len(context.optimizers), 1)
+            context.optimizers[0].load_state_dict(checkpoint["optimizer_state_dict"])
+        else:
+            for idx, optimizer in enumerate(context.optimizers):
+                optimizer.load_state_dict(checkpoint["optimizers_state_dict"][idx])
+
+        if "lr_scheduler" in checkpoint:
+            # Backward compatible with older checkpoint format.
+            check.not_in("lr_schedulers_state_dict", checkpoint)
+            check.eq(len(context.lr_schedulers), 1)
+            context.lr_schedulers[0].load_state_dict(checkpoint["lr_scheduler"])
+        else:
+            for idx, lr_scheduler in enumerate(context.lr_schedulers):
+                lr_scheduler.load_state_dict(checkpoint["lr_schedulers_state_dict"][idx])
+
+        if "scaler_state_dict" in checkpoint:
+            if context._scaler:
+                context._scaler.load_state_dict(checkpoint["scaler_state_dict"])
+            else:
+                logging.warning(
+                    "There exists scaler_state_dict in checkpoint but the experiment is not using "
+                    "AMP."
+                )
+        else:
+            if context._scaler:
+                logging.warning(
+                    "The experiment is using AMP but scaler_state_dict does not exist in the "
+                    "checkpoint."
+                )
+
+        if "amp_state" in checkpoint:
+            if context._use_apex:
+                apex.amp.load_state_dict(checkpoint["amp_state"])
+            else:
+                logging.warning(
+                    "There exists amp_state in checkpoint but the experiment is not using Apex."
+                )
+        else:
+            if context._use_apex:
+                logging.warning(
+                    "The experiment is using Apex but amp_state does not exist in the checkpoint."
+                )
+
+        if "rng_state" in checkpoint:
+            rng_state = checkpoint["rng_state"]
+            np.random.set_state(rng_state["np_rng_state"])
+            random.setstate(rng_state["random_rng_state"])
+            torch.random.set_rng_state(rng_state["cpu_rng_state"])
+
+            if torch.cuda.device_count():
+                if "gpu_rng_state" in rng_state:
+                    torch.cuda.set_rng_state(
+                        rng_state["gpu_rng_state"], device=context.distributed.get_local_rank()
+                    )
+                else:
+                    logging.warning(
+                        "The system has a gpu but no gpu_rng_state exists in the checkpoint."
+                    )
+            else:
+                if "gpu_rng_state" in rng_state:
+                    logging.warning(
+                        "There exists gpu_rng_state in checkpoint but the system has no gpu."
+                    )
+        else:
+            logging.warning("The checkpoint has no random state to restore.")
+
+        callback_state = checkpoint.get("callbacks", {})
+        for name in callbacks:
+            if name in callback_state:
+                callbacks[name].load_state_dict(callback_state[name])
+            elif util.is_overridden(callbacks[name].load_state_dict, pytorch.PyTorchCallback):
+                logging.warning(
+                    "Callback '{}' implements load_state_dict(), but no callback state "
+                    "was found for that name when restoring from checkpoint. This "
+                    "callback will be initialized from scratch"
+                )
 
 
 def reset_parameters(model: torch.nn.Module) -> None:

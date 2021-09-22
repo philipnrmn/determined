@@ -2,6 +2,7 @@ import logging
 from typing import Any, Callable, Dict, Optional, Union, cast
 
 from determined import pytorch, util
+from determined.common import check
 
 # AMP is only available in PyTorch 1.6+
 try:
@@ -15,8 +16,17 @@ class PyTorchExperimentalContext:
     def __init__(self, parent: Any) -> None:
         self._parent = parent
         self._auto_amp = False
+        self._use_deepspeed = False
         self._data_repro_checks_disabled = False
         self._auto_to_device = True
+
+    def use_deepspeed(self) -> None:
+        check.eq(
+            self._parent._scaler,
+            None,
+            "AMP support for deepspeed must be configured through the deepspeed config.",
+        )
+        self._use_deepspeed = True
 
     def use_amp(self) -> None:
         """

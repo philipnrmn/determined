@@ -1,5 +1,6 @@
 import abc
 import logging
+import os
 from typing import Any, Optional
 
 import determined as det
@@ -44,6 +45,8 @@ class TrialController(metaclass=abc.ABCMeta):
 
         if self.hvd_config.use:
             self.is_chief = hvd.rank() == 0
+        elif self.env.hparams.get("deepspeed", False):
+            self.is_chief = int(os.environ["RANK"]) == 0
         else:
             self.is_chief = True
 

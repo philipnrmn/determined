@@ -108,3 +108,9 @@ class PyTorchCallback:
         Run after a new validation epoch has finished
         """
         pass
+
+    def trial_cleanup(self) -> None:
+        """
+        Run after all workloads are finished to cleanup.
+        """
+        pass

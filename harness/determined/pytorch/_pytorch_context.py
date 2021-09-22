@@ -74,6 +74,7 @@ class PyTorchTrialContext(det.TrialContext, pytorch._PyTorchReducerContext):
         self._main_model = nn.Module()
         self._scaler = None
         self._use_apex = False
+        self._mpu = None  # type: Optional[pytorch.ModelParallelUnit]
         self._loss_ids = {}  # type: Dict[torch.Tensor, int]
         self._last_backward_batch_idx = None  # type: Optional[int]
         self._current_batch_idx = None  # type: Optional[int]
@@ -132,14 +133,15 @@ class PyTorchTrialContext(det.TrialContext, pytorch._PyTorchReducerContext):
 
         return wrapped
 
-    def wrap_model(self, model: torch.nn.Module) -> torch.nn.Module:
+    def wrap_model(self, model: torch.nn.Module, skip_to_device: bool = False) -> torch.nn.Module:
         """Returns a wrapped model."""
 
         if self.env.managed_training:
             check.false(self._use_apex, "Must call wrap_model() before configure_apex_amp.")
 
-            model = model.to(self.device)
-            if not self.hvd_config.use and self.n_gpus > 1:
+            if not skip_to_device:
+                model = model.to(self.device)
+            if not self.hvd_config.use and not self.experimental._use_deepspeed and self.n_gpus > 1:
                 check.eq(
                     self.hvd_config.aggregation_frequency,
                     1,
@@ -258,6 +260,11 @@ class PyTorchTrialContext(det.TrialContext, pytorch._PyTorchReducerContext):
         # don't care about.
         return lr_scheduler
 
+    def wrap_mpu(self, mpu: pytorch.ModelParallelUnit) -> pytorch.ModelParallelUnit:
+        check.is_none(self._mpu, "Please only call wrap_mpu once.")
+        self._mpu = mpu
+        return mpu
+
     def set_profiler(self, *args: List[str], **kwargs: Any) -> None:
         """
         Sets a torch profiler instance on the trial context to be called in _pytorch_trial
@@ -331,6 +338,11 @@ class PyTorchTrialContext(det.TrialContext, pytorch._PyTorchReducerContext):
         Returns:
             The scaler. It may be wrapped to add additional functionality for use in Determined.
         """
+
+        check.false(
+            self.experimental._use_deepspeed,
+            "AMP support for deepspeed must be configured through the deepspeed config.",
+        )
 
         check.false(amp_import_error, "Failed to import torch.cuda.amp. PyTorch >= 1.6 required.")
 
@@ -423,9 +435,15 @@ class PyTorchTrialContext(det.TrialContext, pytorch._PyTorchReducerContext):
         if not self.env.managed_training:
             return models, optimizers
 
+        check.false(
+            self.experimental._use_deepspeed,
+            "AMP support for deepspeed must be configured through the deepspeed config.",
+        )
+
         check.is_none(self._scaler, "Do not mix APEX with PyTorch AMP")
 
         check.false(self._use_apex, "Please only call configure_apex_amp once.")
+
         if self.hvd_config.use:
             check.eq(
                 num_losses,
@@ -519,52 +537,58 @@ class PyTorchTrialContext(det.TrialContext, pytorch._PyTorchReducerContext):
                 be constructed, allowing to compute higher order derivative
                 products. Defaults to ``False``.
         """
-        if self._use_apex:
-            if (
-                self._last_backward_batch_idx is None
-                or self._current_batch_idx is None
-                or self._last_backward_batch_idx < self._current_batch_idx
-            ):
-                self._last_backward_batch_idx = self._current_batch_idx
-            else:
-                raise det.errors.InvalidExperimentException(
-                    "Calling context.backward(loss) multiple times is not supported "
-                    "while using apex.amp and parallel/distributed training"
-                )
-
-            if loss not in self._loss_ids:
-                self._loss_ids[loss] = len(self._loss_ids)
-            with apex.amp.scale_loss(
-                loss, self.optimizers, loss_id=self._loss_ids[loss]
-            ) as scaled_loss:
-                with self._record_timing("train_batch.backward", accumulate=True):
-                    scaled_loss.backward(
-                        gradient=gradient, retain_graph=retain_graph, create_graph=create_graph
+        if self.experimental._use_deepspeed:
+            raise det.errors.InvalidExperimentException(
+                "Please call backward on your deepspeed model_engine directly in"
+                "train_batch instead of context.backward."
+            )
+        else:
+            if self._use_apex:
+                if (
+                    self._last_backward_batch_idx is None
+                    or self._current_batch_idx is None
+                    or self._last_backward_batch_idx < self._current_batch_idx
+                ):
+                    self._last_backward_batch_idx = self._current_batch_idx
+                else:
+                    raise det.errors.InvalidExperimentException(
+                        "Calling context.backward(loss) multiple times is not supported "
+                        "while using apex.amp and parallel/distributed training"
                     )
 
-                if self.hvd_config.use and self._should_communicate_and_update():
-                    # When we exit out of this context manager, we need to finish
-                    # communicating gradient updates before they are unscaled.
-                    #
-                    # Unfortunately, there is no clean way to support unscaling
-                    # happening after synchronizing the optimizer on apex.amp.
-                    # A short-term solution is to not support multiple losses nor
-                    # multiple backward passes on one loss. A long-term solution is
-                    # to integrate torch native AMP (https://pytorch.org/docs/stable/amp.html),
-                    # which will come out soon.
-                    with self._record_timing("train_batch.sync_optimizers", accumulate=True):
-                        for optimizer in self.optimizers:
-                            optimizer.synchronize()  # type: ignore
-        else:
-            if self._scaler and self.experimental._auto_amp:
-                loss = self._scaler.scale(loss)
+                if loss not in self._loss_ids:
+                    self._loss_ids[loss] = len(self._loss_ids)
+                with apex.amp.scale_loss(
+                    loss, self.optimizers, loss_id=self._loss_ids[loss]
+                ) as scaled_loss:
+                    with self._record_timing("train_batch.backward", accumulate=True):
+                        scaled_loss.backward(
+                            gradient=gradient, retain_graph=retain_graph, create_graph=create_graph
+                        )
 
-            with self._record_timing("train_batch.backward", accumulate=True):
-                loss.backward(  # type: ignore
-                    gradient=gradient,
-                    retain_graph=retain_graph,
-                    create_graph=create_graph,
-                )
+                    if self.hvd_config.use and self._should_communicate_and_update():
+                        # When we exit out of this context manager, we need to finish
+                        # communicating gradient updates before they are unscaled.
+                        #
+                        # Unfortunately, there is no clean way to support unscaling
+                        # happening after synchronizing the optimizer on apex.amp.
+                        # A short-term solution is to not support multiple losses nor
+                        # multiple backward passes on one loss. A long-term solution is
+                        # to integrate torch native AMP (https://pytorch.org/docs/stable/amp.html),
+                        # which will come out soon.
+                        with self._record_timing("train_batch.sync_optimizers", accumulate=True):
+                            for optimizer in self.optimizers:
+                                optimizer.synchronize()  # type: ignore
+            else:
+                if self._scaler and self.experimental._auto_amp:
+                    loss = self._scaler.scale(loss)
+
+                with self._record_timing("train_batch.backward", accumulate=True):
+                    loss.backward(  # type: ignore
+                        gradient=gradient,
+                        retain_graph=retain_graph,
+                        create_graph=create_graph,
+                    )
 
     def _average_gradients(self, parameters: Any, divisor: int) -> None:
         check.gt_eq(divisor, 1)
@@ -615,57 +639,62 @@ class PyTorchTrialContext(det.TrialContext, pytorch._PyTorchReducerContext):
                 optimizer. This should be unset if not using AMP, and is necessary if
                 ``wrap_scaler()`` was called directly.
         """
-
-        check.true(
-            auto_zero_grads or self.hvd_config.aggregation_frequency == 1,
-            "if optimizations.aggregation_frequency is larger than 1, "
-            "you can only set auto_zero_grads to be true. ",
-        )
-
-        if not self._should_communicate_and_update():
-            return
-
-        # Communication needs to be synchronized so that is completed
-        # before we apply gradient clipping and `step()`. In the case of APEX
-        # this is called in backward() instead, so that it's inside the context
-        # manager and before unscaling.
-        if self.hvd_config.use and not self._use_apex:
-            with self._record_timing("train_batch.sync_optimizers", accumulate=True):
-                optimizer.synchronize()  # type: ignore
-
-        parameters = (
-            [p for group in optimizer.param_groups for p in group.get("params", [])]
-            if not self._use_apex
-            else apex.amp.master_params(optimizer)
-        )
-
-        if self.hvd_config.average_aggregated_gradients:
-            self._average_gradients(
-                parameters=parameters, divisor=self.hvd_config.aggregation_frequency
+        if self.experimental._use_deepspeed:
+            raise det.errors.InvalidExperimentException(
+                "Please call step on your deepspeed model_engine directly in"
+                "train_batch instead of context.step_optimizer."
+            )
+        else:
+            check.true(
+                auto_zero_grads or self.hvd_config.aggregation_frequency == 1,
+                "if optimizations.aggregation_frequency is larger than 1, "
+                "you can only set auto_zero_grads to be true. ",
             )
 
-        if clip_grads is not None:
-            if self._scaler and self.experimental._auto_amp:
-                self._scaler.unscale_(optimizer)
-            clip_grads(parameters)
+            if not self._should_communicate_and_update():
+                return
 
-        # For stepping the optimizer we will operate on the scaler passed
-        # in, or fall back to the wrapped scaler (if any).
-        if scaler is None and self.experimental._auto_amp:
-            scaler = self._scaler
-        if scaler:
+            # Communication needs to be synchronized so that is completed
+            # before we apply gradient clipping and `step()`. In the case of APEX
+            # this is called in backward() instead, so that it's inside the context
+            # manager and before unscaling.
+            if self.hvd_config.use and not self._use_apex:
+                with self._record_timing("train_batch.sync_optimizers", accumulate=True):
+                    optimizer.synchronize()  # type: ignore
 
-            def step_fn() -> None:
-                scaler.step(optimizer)  # type: ignore
+            parameters = (
+                [p for group in optimizer.param_groups for p in group.get("params", [])]
+                if not self._use_apex
+                else apex.amp.master_params(optimizer)
+            )
 
-        else:
-            step_fn = optimizer.step  # type: ignore
+            if self.hvd_config.average_aggregated_gradients:
+                self._average_gradients(
+                    parameters=parameters, divisor=self.hvd_config.aggregation_frequency
+                )
 
-        if self.hvd_config.use:
-            with optimizer.skip_synchronize():  # type: ignore
+            if clip_grads is not None:
+                if self._scaler and self.experimental._auto_amp:
+                    self._scaler.unscale_(optimizer)
+                clip_grads(parameters)
+
+            # For stepping the optimizer we will operate on the scaler passed
+            # in, or fall back to the wrapped scaler (if any).
+            if scaler is None and self.experimental._auto_amp:
+                scaler = self._scaler
+            if scaler:
+
+                def step_fn() -> None:
+                    scaler.step(optimizer)  # type: ignore
+
+            else:
+                step_fn = optimizer.step  # type: ignore
+
+            if self.hvd_config.use:
+                with optimizer.skip_synchronize():  # type: ignore
+                    step_fn()
+            else:
                 step_fn()
-        else:
-            step_fn()
 
         if auto_zero_grads:
             optimizer.zero_grad()

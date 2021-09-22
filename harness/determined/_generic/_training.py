@@ -3,6 +3,8 @@ import logging
 import math
 from typing import Any, Dict, List, Optional
 
+import filelock
+
 import determined as det
 from determined import tensorboard
 from determined.common.api import errors
@@ -128,14 +130,21 @@ class Training:
             self._tbd_mgr.sync()
 
     def report_early_exit(self, reason: EarlyExitReason) -> None:
-        body = {"reason": EarlyExitReason(reason).value}
-        logger.info(f"report_early_exit({reason})")
-        r = self._session.post(
-            f"/api/v1/trials/{self._trial_id}/early_exit",
-            data=det.util.json_encode(body),
-        )
-        if r.status_code == 400:
-            logger.warn("early exit has already been reported for this trial, ignoring new value")
+        with filelock.FileLock("/tmp/report_early_exit.lock"):
+            r = self._session.get(
+                f"/api/v1/trials/{self._trial_id}/early_exit",
+            )
+            if r.status_code == 400:
+                body = {"reason": EarlyExitReason(reason).value}
+                logger.info(f"report_early_exit({reason})")
+                self._session.post(
+                    f"/api/v1/trials/{self._trial_id}/early_exit",
+                    data=det.util.json_encode(body),
+                )
+            else:
+                logger.warning(
+                    "early exit has already been reported for this trial, ignoring new value"
+                )
 
     def get_experiment_best_validation(self) -> Optional[float]:
         logger.debug("get_experiment_best_validation()")

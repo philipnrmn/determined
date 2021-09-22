@@ -104,3 +104,6 @@ class TFWriter(tensorboard.MetricWriter):
     def reset(self) -> None:
         self.writer.close()
         self.writer.reopen()
+
+    def close(self) -> None:
+        self.writer.close()

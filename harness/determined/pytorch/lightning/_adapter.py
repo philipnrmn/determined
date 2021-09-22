@@ -1,6 +1,6 @@
 import inspect
 from abc import abstractmethod
-from typing import Any, Dict, List, Sequence, Tuple, Union, cast
+from typing import Any, Dict, List, Tuple, Union, cast
 
 import pytorch_lightning as pl
 import torch
@@ -20,11 +20,10 @@ from determined.pytorch import (
     PyTorchCallback,
     PyTorchTrial,
     PyTorchTrialContext,
+    TorchData,
 )
 from determined.tensorboard.metric_writers import pytorch
 from determined.util import filter_duplicates, has_param
-
-TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
 
 def check_compatibility(lm: pl.LightningModule) -> None:

@@ -56,7 +56,7 @@ extensions = [
 autosummary_generate = True
 autoclass_content = "class"
 
-autodoc_mock_imports = ["mmcv", "mmdet", "transformers", "pytorch_lightning", "datasets", "analytics"]
+autodoc_mock_imports = ["mmcv", "mmdet", "transformers", "pytorch_lightning", "datasets", "analytics", "deepspeed"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
