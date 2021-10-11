@@ -22,8 +22,8 @@ const (
 	// The maximum size of elasticsearch queries on a cluster with default configurations.
 	// Can be increased but is limited by Lucene's 2m cap also.
 	elasticMaxQuerySize = 10000
-	// A time buffer to allow logs to come in before we try to serve them up. We do this to
-	// not miss later logs when using search_after.
+	// ElasticTimeWindowDelay is the time buffer to allow logs to come in before we try to serve
+	// them up. We do this to not miss later logs when using search_after the way we do.
 	ElasticTimeWindowDelay = 10 * time.Second
 )
 

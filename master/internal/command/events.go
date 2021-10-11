@@ -18,18 +18,6 @@ import (
 )
 
 const defaultEventBufferSize = 200
-const ctxMissingSender = "message is missing sender information"
-
-func countNonNullRingValues(ring *ring.Ring) int {
-	// TODO(DET-4206) we could work on a constant time solution.
-	count := 0
-	ring.Do(func(val interface{}) {
-		if val != nil {
-			count++
-		}
-	})
-	return count
-}
 
 // GetEventCount is an actor message used to get the number of events in buffer.
 type GetEventCount struct{}
@@ -151,26 +139,6 @@ func validEvent(e sproto.Event, greaterThanSeq, lessThanSeq *int) bool {
 		return false
 	}
 	return true
-}
-
-func eventSatisfiesLogRequest(req webAPI.BatchRequest, event *sproto.Event) bool {
-	return event.Seq >= req.Offset
-}
-
-func (e *eventManager) getMatchingEvents(req webAPI.BatchRequest) []*sproto.Event {
-	events := e.buffer
-	var logs []*sproto.Event
-
-	for i := 0; i < e.bufferSize; i++ {
-		if events.Value != nil {
-			event := events.Value.(sproto.Event)
-			if eventSatisfiesLogRequest(req, &event) && (req.Limit < 1 || len(logs) < req.Limit) {
-				logs = append(logs, &event)
-			}
-		}
-		events = events.Next()
-	}
-	return logs
 }
 
 // handleAPIRequest handles HTTP API requests inbound to this actor.

@@ -12,7 +12,6 @@ import (
 	"math"
 	"math/rand"
 	"sort"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -27,7 +26,6 @@ import (
 
 	"github.com/determined-ai/determined/master/internal"
 	"github.com/determined-ai/determined/master/internal/db"
-	"github.com/determined-ai/determined/master/internal/elastic"
 
 	"github.com/determined-ai/determined/master/test/testutils"
 

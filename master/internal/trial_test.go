@@ -120,7 +120,7 @@ func TestTrialRestarts(t *testing.T) {
 			Msg: &task.AllocationExited{Err: errors.New("bad stuff went down")},
 		})
 		require.NoError(t, tr.allocation.StopAndAwaitTermination())
-		system.Ask(self, model.TrialLog{}).Get() // sync
+		system.Ask(self, actor.Ping{}).Get() // sync
 
 		if i == tr.config.MaxRestarts() {
 			require.True(t, db.AssertExpectations(t))

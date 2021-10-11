@@ -9,6 +9,8 @@ import (
 
 	"gotest.tools/assert"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/determined-ai/determined/master/internal/sproto"
 	"github.com/determined-ai/determined/master/pkg/actor"
 	"github.com/determined-ai/determined/master/pkg/agent"
@@ -452,6 +454,9 @@ func TestReceivePodStatusUpdateStarting(t *testing.T) {
 
 	system.Ask(ref, statusUpdate)
 	time.Sleep(time.Second)
+
+	spew.Dump(podMap["task"].responses, podMap["task"].GetLength())
+
 	assert.Equal(t, podMap["task"].GetLength(), 2)
 	assert.Equal(t, newPod.container.State, container.Starting)
 
