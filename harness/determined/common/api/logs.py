@@ -8,7 +8,7 @@ from termcolor import colored
 from determined.common import api
 
 
-def pprint_task_logs(master_url: str, task_id: int, **kwargs: Any) -> None:
+def pprint_task_logs(master_url: str, task_id: str, **kwargs: Any) -> None:
     try:
         for log in task_logs(master_url, task_id, **kwargs):
             print(log["message"], end="")

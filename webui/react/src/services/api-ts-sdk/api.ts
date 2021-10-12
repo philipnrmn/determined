@@ -472,6 +472,46 @@ export interface StreamResultOfV1NotebookLogsResponse {
 /**
  * 
  * @export
+ * @interface StreamResultOfV1TaskLogsFieldsResponse
+ */
+export interface StreamResultOfV1TaskLogsFieldsResponse {
+    /**
+     * 
+     * @type {V1TaskLogsFieldsResponse}
+     * @memberof StreamResultOfV1TaskLogsFieldsResponse
+     */
+    result?: V1TaskLogsFieldsResponse;
+    /**
+     * 
+     * @type {RuntimeStreamError}
+     * @memberof StreamResultOfV1TaskLogsFieldsResponse
+     */
+    error?: RuntimeStreamError;
+}
+
+/**
+ * 
+ * @export
+ * @interface StreamResultOfV1TaskLogsResponse
+ */
+export interface StreamResultOfV1TaskLogsResponse {
+    /**
+     * 
+     * @type {V1TaskLogsResponse}
+     * @memberof StreamResultOfV1TaskLogsResponse
+     */
+    result?: V1TaskLogsResponse;
+    /**
+     * 
+     * @type {RuntimeStreamError}
+     * @memberof StreamResultOfV1TaskLogsResponse
+     */
+    error?: RuntimeStreamError;
+}
+
+/**
+ * 
+ * @export
  * @interface StreamResultOfV1TrialLogsFieldsResponse
  */
 export interface StreamResultOfV1TrialLogsFieldsResponse {
@@ -803,6 +843,28 @@ export interface V1AllocationPreemptionSignalResponse {
      * @memberof V1AllocationPreemptionSignalResponse
      */
     preempt?: boolean;
+}
+
+/**
+ * Mark the given task as ready.
+ * @export
+ * @interface V1AllocationReadyRequest
+ */
+export interface V1AllocationReadyRequest {
+    /**
+     * The id of the allocation.
+     * @type {string}
+     * @memberof V1AllocationReadyRequest
+     */
+    allocationId?: string;
+}
+
+/**
+ * Response to IdleNotebookRequest.
+ * @export
+ * @interface V1AllocationReadyResponse
+ */
+export interface V1AllocationReadyResponse {
 }
 
 /**
@@ -2028,7 +2090,7 @@ export interface V1GetModelVersionsResponse {
 }
 
 /**
- * Sort models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.  - SORT_BY_NUM_VERSIONS: Returns models sorted by number of version.
+ * Sort models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.
  * @export
  * @enum {string}
  */
@@ -2037,8 +2099,7 @@ export enum V1GetModelsRequestSortBy {
     NAME = <any> 'SORT_BY_NAME',
     DESCRIPTION = <any> 'SORT_BY_DESCRIPTION',
     CREATIONTIME = <any> 'SORT_BY_CREATION_TIME',
-    LASTUPDATEDTIME = <any> 'SORT_BY_LAST_UPDATED_TIME',
-    NUMVERSIONS = <any> 'SORT_BY_NUM_VERSIONS'
+    LASTUPDATEDTIME = <any> 'SORT_BY_LAST_UPDATED_TIME'
 }
 
 /**
@@ -2052,13 +2113,13 @@ export interface V1GetModelsResponse {
      * @type {Array<V1Model>}
      * @memberof V1GetModelsResponse
      */
-    models: Array<V1Model>;
+    models?: Array<V1Model>;
     /**
      * Pagination information of the full dataset.
      * @type {V1Pagination}
      * @memberof V1GetModelsResponse
      */
-    pagination: V1Pagination;
+    pagination?: V1Pagination;
 }
 
 /**
@@ -3030,42 +3091,6 @@ export interface V1Model {
      * @memberof V1Model
      */
     lastUpdatedTime: Date;
-    /**
-     * The id of this model.
-     * @type {number}
-     * @memberof V1Model
-     */
-    id: number;
-    /**
-     * The number of versions associated with this model.
-     * @type {number}
-     * @memberof V1Model
-     */
-    numVersions: number;
-    /**
-     * Labels associated with this model.
-     * @type {Array<string>}
-     * @memberof V1Model
-     */
-    labels?: Array<string>;
-    /**
-     * README for model.
-     * @type {string}
-     * @memberof V1Model
-     */
-    readme?: string;
-    /**
-     * User who created this model.
-     * @type {string}
-     * @memberof V1Model
-     */
-    username: string;
-    /**
-     * Whether this model is archived or not.
-     * @type {boolean}
-     * @memberof V1Model
-     */
-    archived?: boolean;
 }
 
 /**
@@ -3079,67 +3104,25 @@ export interface V1ModelVersion {
      * @type {V1Model}
      * @memberof V1ModelVersion
      */
-    model: V1Model;
+    model?: V1Model;
     /**
      * The checkpoint of the model version.
      * @type {V1Checkpoint}
      * @memberof V1ModelVersion
      */
-    checkpoint: V1Checkpoint;
+    checkpoint?: V1Checkpoint;
     /**
      * The version number.
      * @type {number}
      * @memberof V1ModelVersion
      */
-    version: number;
+    version?: number;
     /**
      * The time the model version was created.
      * @type {Date}
      * @memberof V1ModelVersion
      */
-    creationTime: Date;
-    /**
-     * Unique id for each model version.
-     * @type {number}
-     * @memberof V1ModelVersion
-     */
-    id: number;
-    /**
-     * Name for this model version.
-     * @type {string}
-     * @memberof V1ModelVersion
-     */
-    name?: string;
-    /**
-     * Metadata associated with this model version.
-     * @type {any}
-     * @memberof V1ModelVersion
-     */
-    metadata?: any;
-    /**
-     * The time this model version was last updated.
-     * @type {Date}
-     * @memberof V1ModelVersion
-     */
-    lastUpdatedTime?: Date;
-    /**
-     * Comment associated with this model version.
-     * @type {string}
-     * @memberof V1ModelVersion
-     */
-    comment?: string;
-    /**
-     * Readme associated with this model version.
-     * @type {string}
-     * @memberof V1ModelVersion
-     */
-    readme?: string;
-    /**
-     * User who created this model version.
-     * @type {string}
-     * @memberof V1ModelVersion
-     */
-    username: string;
+    creationTime?: Date;
 }
 
 /**
@@ -3366,11 +3349,11 @@ export interface V1PostModelResponse {
  */
 export interface V1PostModelVersionRequest {
     /**
-     * The id of the model to add a version to.
-     * @type {number}
+     * The name of the model to add a version to.
+     * @type {string}
      * @memberof V1PostModelVersionRequest
      */
-    modelId?: number;
+    modelName?: string;
     /**
      * The checkpoint representing the new version.
      * @type {string}
@@ -4539,6 +4522,82 @@ export interface V1Slot {
      * @memberof V1Slot
      */
     draining?: boolean;
+}
+
+/**
+ * Response to TaskLogFieldsRequest.
+ * @export
+ * @interface V1TaskLogsFieldsResponse
+ */
+export interface V1TaskLogsFieldsResponse {
+    /**
+     * The distint allocation IDs present in the logs.
+     * @type {Array<string>}
+     * @memberof V1TaskLogsFieldsResponse
+     */
+    allocationIds?: Array<string>;
+    /**
+     * The distinct agent IDs present in the logs.
+     * @type {Array<string>}
+     * @memberof V1TaskLogsFieldsResponse
+     */
+    agentIds?: Array<string>;
+    /**
+     * The distinct container IDs present in the logs.
+     * @type {Array<string>}
+     * @memberof V1TaskLogsFieldsResponse
+     */
+    containerIds?: Array<string>;
+    /**
+     * The distinct rank IDs present in the logs.
+     * @type {Array<number>}
+     * @memberof V1TaskLogsFieldsResponse
+     */
+    rankIds?: Array<number>;
+    /**
+     * The distinct stdtypes present in the logs.
+     * @type {Array<string>}
+     * @memberof V1TaskLogsFieldsResponse
+     */
+    stdtypes?: Array<string>;
+    /**
+     * The distinct sources present in the logs.
+     * @type {Array<string>}
+     * @memberof V1TaskLogsFieldsResponse
+     */
+    sources?: Array<string>;
+}
+
+/**
+ * Response to TaskLogsRequest.
+ * @export
+ * @interface V1TaskLogsResponse
+ */
+export interface V1TaskLogsResponse {
+    /**
+     * The ID of the log.
+     * @type {string}
+     * @memberof V1TaskLogsResponse
+     */
+    id: string;
+    /**
+     * The timestamp of the log.
+     * @type {Date}
+     * @memberof V1TaskLogsResponse
+     */
+    timestamp: Date;
+    /**
+     * The log message.
+     * @type {string}
+     * @memberof V1TaskLogsResponse
+     */
+    message: string;
+    /**
+     * The level of the log.
+     * @type {V1LogLevel}
+     * @memberof V1TaskLogsResponse
+     */
+    level: V1LogLevel;
 }
 
 /**
@@ -9397,6 +9456,52 @@ export const InternalApiFetchParamCreator = function (configuration?: Configurat
         },
         /**
          * 
+         * @summary Set allocation to ready state.
+         * @param {string} allocationId The id of the allocation.
+         * @param {V1AllocationReadyRequest} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedAllocationReady(allocationId: string, body: V1AllocationReadyRequest, options: any = {}): FetchArgs {
+            // verify required parameter 'allocationId' is not null or undefined
+            if (allocationId === null || allocationId === undefined) {
+                throw new RequiredError('allocationId','Required parameter allocationId was null or undefined when calling determinedAllocationReady.');
+            }
+            // verify required parameter 'body' is not null or undefined
+            if (body === null || body === undefined) {
+                throw new RequiredError('body','Required parameter body was null or undefined when calling determinedAllocationReady.');
+            }
+            const localVarPath = `/api/v1/allocations/{allocationId}/ready`
+                .replace(`{${"allocationId"}}`, encodeURIComponent(String(allocationId)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerToken required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("Authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["Authorization"] = localVarApiKeyValue;
+            }
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+            const needsSerialization = (<any>"V1AllocationReadyRequest" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
+            localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary Gather an allocation's rendezvous info. Blocks until all trial containers connect to gather their rendezvous information and responds to them all at once.
          * @param {string} allocationId The id of the allocation.
          * @param {string} containerId The id of the allocation. Used to verify all allocations are connected.
@@ -10462,6 +10567,26 @@ export const InternalApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary Set allocation to ready state.
+         * @param {string} allocationId The id of the allocation.
+         * @param {V1AllocationReadyRequest} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedAllocationReady(allocationId: string, body: V1AllocationReadyRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1AllocationReadyResponse> {
+            const localVarFetchArgs = InternalApiFetchParamCreator(configuration).determinedAllocationReady(allocationId, body, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
+        /**
+         * 
          * @summary Gather an allocation's rendezvous info. Blocks until all trial containers connect to gather their rendezvous information and responds to them all at once.
          * @param {string} allocationId The id of the allocation.
          * @param {string} containerId The id of the allocation. Used to verify all allocations are connected.
@@ -10939,6 +11064,17 @@ export const InternalApiFactory = function (configuration?: Configuration, fetch
         },
         /**
          * 
+         * @summary Set allocation to ready state.
+         * @param {string} allocationId The id of the allocation.
+         * @param {V1AllocationReadyRequest} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedAllocationReady(allocationId: string, body: V1AllocationReadyRequest, options?: any) {
+            return InternalApiFp(configuration).determinedAllocationReady(allocationId, body, options)(fetch, basePath);
+        },
+        /**
+         * 
          * @summary Gather an allocation's rendezvous info. Blocks until all trial containers connect to gather their rendezvous information and responds to them all at once.
          * @param {string} allocationId The id of the allocation.
          * @param {string} containerId The id of the allocation. Used to verify all allocations are connected.
@@ -11219,6 +11355,19 @@ export class InternalApi extends BaseAPI {
      */
     public determinedAllocationPreemptionSignal(allocationId: string, timeoutSeconds?: number, options?: any) {
         return InternalApiFp(this.configuration).determinedAllocationPreemptionSignal(allocationId, timeoutSeconds, options)(this.fetch, this.basePath);
+    }
+
+    /**
+     * 
+     * @summary Set allocation to ready state.
+     * @param {string} allocationId The id of the allocation.
+     * @param {V1AllocationReadyRequest} body 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InternalApi
+     */
+    public determinedAllocationReady(allocationId: string, body: V1AllocationReadyRequest, options?: any) {
+        return InternalApiFp(this.configuration).determinedAllocationReady(allocationId, body, options)(this.fetch, this.basePath);
     }
 
     /**
@@ -11516,6 +11665,302 @@ export class InternalApi extends BaseAPI {
 }
 
 /**
+ * JobsApi - fetch parameter creator
+ * @export
+ */
+export const JobsApiFetchParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary Stream task logs.
+         * @param {string} taskId The id of the task.
+         * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+         * @param {boolean} [follow] Continue following logs until the trial stops.
+         * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+         * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+         * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+         * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+         * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+         * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+         * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+         * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+         * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+         * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options: any = {}): FetchArgs {
+            // verify required parameter 'taskId' is not null or undefined
+            if (taskId === null || taskId === undefined) {
+                throw new RequiredError('taskId','Required parameter taskId was null or undefined when calling determinedTaskLogs.');
+            }
+            const localVarPath = `/api/v1/tasks/{taskId}/logs`
+                .replace(`{${"taskId"}}`, encodeURIComponent(String(taskId)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerToken required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("Authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["Authorization"] = localVarApiKeyValue;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (follow !== undefined) {
+                localVarQueryParameter['follow'] = follow;
+            }
+
+            if (allocationIds) {
+                localVarQueryParameter['allocationIds'] = allocationIds;
+            }
+
+            if (agentIds) {
+                localVarQueryParameter['agentIds'] = agentIds;
+            }
+
+            if (containerIds) {
+                localVarQueryParameter['containerIds'] = containerIds;
+            }
+
+            if (rankIds) {
+                localVarQueryParameter['rankIds'] = rankIds;
+            }
+
+            if (levels) {
+                localVarQueryParameter['levels'] = levels;
+            }
+
+            if (stdtypes) {
+                localVarQueryParameter['stdtypes'] = stdtypes;
+            }
+
+            if (sources) {
+                localVarQueryParameter['sources'] = sources;
+            }
+
+            if (timestampBefore !== undefined) {
+                localVarQueryParameter['timestampBefore'] = (timestampBefore as any).toISOString();
+            }
+
+            if (timestampAfter !== undefined) {
+                localVarQueryParameter['timestampAfter'] = (timestampAfter as any).toISOString();
+            }
+
+            if (orderBy !== undefined) {
+                localVarQueryParameter['orderBy'] = orderBy;
+            }
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Stream task log fields.
+         * @param {string} taskId The ID of the task.
+         * @param {boolean} [follow] Continue following fields until the task stops.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogsFields(taskId: string, follow?: boolean, options: any = {}): FetchArgs {
+            // verify required parameter 'taskId' is not null or undefined
+            if (taskId === null || taskId === undefined) {
+                throw new RequiredError('taskId','Required parameter taskId was null or undefined when calling determinedTaskLogsFields.');
+            }
+            const localVarPath = `/api/v1/tasks/{taskId}/logs/fields`
+                .replace(`{${"taskId"}}`, encodeURIComponent(String(taskId)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerToken required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("Authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["Authorization"] = localVarApiKeyValue;
+            }
+
+            if (follow !== undefined) {
+                localVarQueryParameter['follow'] = follow;
+            }
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * JobsApi - functional programming interface
+ * @export
+ */
+export const JobsApiFp = function(configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary Stream task logs.
+         * @param {string} taskId The id of the task.
+         * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+         * @param {boolean} [follow] Continue following logs until the trial stops.
+         * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+         * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+         * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+         * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+         * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+         * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+         * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+         * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+         * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+         * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<StreamResultOfV1TaskLogsResponse> {
+            const localVarFetchArgs = JobsApiFetchParamCreator(configuration).determinedTaskLogs(taskId, limit, follow, allocationIds, agentIds, containerIds, rankIds, levels, stdtypes, sources, timestampBefore, timestampAfter, orderBy, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
+        /**
+         * 
+         * @summary Stream task log fields.
+         * @param {string} taskId The ID of the task.
+         * @param {boolean} [follow] Continue following fields until the task stops.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogsFields(taskId: string, follow?: boolean, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<StreamResultOfV1TaskLogsFieldsResponse> {
+            const localVarFetchArgs = JobsApiFetchParamCreator(configuration).determinedTaskLogsFields(taskId, follow, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
+    }
+};
+
+/**
+ * JobsApi - factory interface
+ * @export
+ */
+export const JobsApiFactory = function (configuration?: Configuration, fetch?: FetchAPI, basePath?: string) {
+    return {
+        /**
+         * 
+         * @summary Stream task logs.
+         * @param {string} taskId The id of the task.
+         * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+         * @param {boolean} [follow] Continue following logs until the trial stops.
+         * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+         * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+         * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+         * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+         * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+         * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+         * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+         * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+         * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+         * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options?: any) {
+            return JobsApiFp(configuration).determinedTaskLogs(taskId, limit, follow, allocationIds, agentIds, containerIds, rankIds, levels, stdtypes, sources, timestampBefore, timestampAfter, orderBy, options)(fetch, basePath);
+        },
+        /**
+         * 
+         * @summary Stream task log fields.
+         * @param {string} taskId The ID of the task.
+         * @param {boolean} [follow] Continue following fields until the task stops.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogsFields(taskId: string, follow?: boolean, options?: any) {
+            return JobsApiFp(configuration).determinedTaskLogsFields(taskId, follow, options)(fetch, basePath);
+        },
+    };
+};
+
+/**
+ * JobsApi - object-oriented interface
+ * @export
+ * @class JobsApi
+ * @extends {BaseAPI}
+ */
+export class JobsApi extends BaseAPI {
+    /**
+     * 
+     * @summary Stream task logs.
+     * @param {string} taskId The id of the task.
+     * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+     * @param {boolean} [follow] Continue following logs until the trial stops.
+     * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+     * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+     * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+     * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+     * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+     * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+     * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+     * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+     * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+     * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof JobsApi
+     */
+    public determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options?: any) {
+        return JobsApiFp(this.configuration).determinedTaskLogs(taskId, limit, follow, allocationIds, agentIds, containerIds, rankIds, levels, stdtypes, sources, timestampBefore, timestampAfter, orderBy, options)(this.fetch, this.basePath);
+    }
+
+    /**
+     * 
+     * @summary Stream task log fields.
+     * @param {string} taskId The ID of the task.
+     * @param {boolean} [follow] Continue following fields until the task stops.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof JobsApi
+     */
+    public determinedTaskLogsFields(taskId: string, follow?: boolean, options?: any) {
+        return JobsApiFp(this.configuration).determinedTaskLogsFields(taskId, follow, options)(this.fetch, this.basePath);
+    }
+
+}
+
+/**
  * ModelsApi - fetch parameter creator
  * @export
  */
@@ -11524,17 +11969,17 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
         /**
          * 
          * @summary Get the requested model.
-         * @param {number} modelId The name of the template.
+         * @param {string} modelName The name of the template.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModel(modelId: number, options: any = {}): FetchArgs {
-            // verify required parameter 'modelId' is not null or undefined
-            if (modelId === null || modelId === undefined) {
-                throw new RequiredError('modelId','Required parameter modelId was null or undefined when calling determinedGetModel.');
+        determinedGetModel(modelName: string, options: any = {}): FetchArgs {
+            // verify required parameter 'modelName' is not null or undefined
+            if (modelName === null || modelName === undefined) {
+                throw new RequiredError('modelName','Required parameter modelName was null or undefined when calling determinedGetModel.');
             }
-            const localVarPath = `/api/v1/models/{modelId}`
-                .replace(`{${"modelId"}}`, encodeURIComponent(String(modelId)));
+            const localVarPath = `/api/v1/models/{modelName}`
+                .replace(`{${"modelName"}}`, encodeURIComponent(String(modelName)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
             const localVarHeaderParameter = {} as any;
@@ -11561,22 +12006,22 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
         /**
          * 
          * @summary Get the requested model version.
-         * @param {string} modelId The name of the model.
+         * @param {string} modelName The name of the model.
          * @param {number} modelVersion The version number.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModelVersion(modelId: string, modelVersion: number, options: any = {}): FetchArgs {
-            // verify required parameter 'modelId' is not null or undefined
-            if (modelId === null || modelId === undefined) {
-                throw new RequiredError('modelId','Required parameter modelId was null or undefined when calling determinedGetModelVersion.');
+        determinedGetModelVersion(modelName: string, modelVersion: number, options: any = {}): FetchArgs {
+            // verify required parameter 'modelName' is not null or undefined
+            if (modelName === null || modelName === undefined) {
+                throw new RequiredError('modelName','Required parameter modelName was null or undefined when calling determinedGetModelVersion.');
             }
             // verify required parameter 'modelVersion' is not null or undefined
             if (modelVersion === null || modelVersion === undefined) {
                 throw new RequiredError('modelVersion','Required parameter modelVersion was null or undefined when calling determinedGetModelVersion.');
             }
-            const localVarPath = `/api/v1/models/{modelId}/versions/{modelVersion}`
-                .replace(`{${"modelId"}}`, encodeURIComponent(String(modelId)))
+            const localVarPath = `/api/v1/models/{modelName}/versions/{modelVersion}`
+                .replace(`{${"modelName"}}`, encodeURIComponent(String(modelName)))
                 .replace(`{${"modelVersion"}}`, encodeURIComponent(String(modelVersion)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
@@ -11604,7 +12049,7 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
         /**
          * 
          * @summary Get a list of versions for the requested model.
-         * @param {number} modelId The id of the model.
+         * @param {string} modelName The name of the model.
          * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME'} [sortBy] Sort the model versions by the given field.   - SORT_BY_UNSPECIFIED: Returns model versions in an unsorted list.  - SORT_BY_VERSION: Returns model versions sorted by version number.  - SORT_BY_CREATION_TIME: Returns model versions sorted by creation_time.
          * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order model versions in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
          * @param {number} [offset] Skip the number of model versions before returning results. Negative values denote number of models to skip from the end before returning results.
@@ -11612,13 +12057,13 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModelVersions(modelId: number, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options: any = {}): FetchArgs {
-            // verify required parameter 'modelId' is not null or undefined
-            if (modelId === null || modelId === undefined) {
-                throw new RequiredError('modelId','Required parameter modelId was null or undefined when calling determinedGetModelVersions.');
+        determinedGetModelVersions(modelName: string, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options: any = {}): FetchArgs {
+            // verify required parameter 'modelName' is not null or undefined
+            if (modelName === null || modelName === undefined) {
+                throw new RequiredError('modelName','Required parameter modelName was null or undefined when calling determinedGetModelVersions.');
             }
-            const localVarPath = `/api/v1/models/{modelId}/versions`
-                .replace(`{${"modelId"}}`, encodeURIComponent(String(modelId)));
+            const localVarPath = `/api/v1/models/{modelName}/versions`
+                .replace(`{${"modelName"}}`, encodeURIComponent(String(modelName)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
             const localVarHeaderParameter = {} as any;
@@ -11661,19 +12106,16 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
         /**
          * 
          * @summary Get a list of models.
-         * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.  - SORT_BY_NUM_VERSIONS: Returns models sorted by number of version.
+         * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.
          * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order models in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
          * @param {number} [offset] Skip the number of models before returning results. Negative values denote number of models to skip from the end before returning results.
          * @param {number} [limit] Limit the number of models. A value of 0 denotes no limit.
          * @param {string} [name] Limit the models to those matching the name.
          * @param {string} [description] Limit the models to those matching the description.
-         * @param {Array<string>} [labels] Limit the models to those with the following labels.
-         * @param {boolean} [archived] Limit to unarchived models only.
-         * @param {Array<string>} [users] Limit the models to those made by the following users.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, labels?: Array<string>, archived?: boolean, users?: Array<string>, options: any = {}): FetchArgs {
+        determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, options: any = {}): FetchArgs {
             const localVarPath = `/api/v1/models`;
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
@@ -11712,18 +12154,6 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
                 localVarQueryParameter['description'] = description;
             }
 
-            if (labels) {
-                localVarQueryParameter['labels'] = labels;
-            }
-
-            if (archived !== undefined) {
-                localVarQueryParameter['archived'] = archived;
-            }
-
-            if (users) {
-                localVarQueryParameter['users'] = users;
-            }
-
             localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
             // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
             delete localVarUrlObj.search;
@@ -11737,22 +12167,22 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
         /**
          * 
          * @summary Patch a model's fields.
-         * @param {number} modelId The id of this model.
+         * @param {string} modelName The name of the model.
          * @param {V1PatchModelRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedPatchModel(modelId: number, body: V1PatchModelRequest, options: any = {}): FetchArgs {
-            // verify required parameter 'modelId' is not null or undefined
-            if (modelId === null || modelId === undefined) {
-                throw new RequiredError('modelId','Required parameter modelId was null or undefined when calling determinedPatchModel.');
+        determinedPatchModel(modelName: string, body: V1PatchModelRequest, options: any = {}): FetchArgs {
+            // verify required parameter 'modelName' is not null or undefined
+            if (modelName === null || modelName === undefined) {
+                throw new RequiredError('modelName','Required parameter modelName was null or undefined when calling determinedPatchModel.');
             }
             // verify required parameter 'body' is not null or undefined
             if (body === null || body === undefined) {
                 throw new RequiredError('body','Required parameter body was null or undefined when calling determinedPatchModel.');
             }
-            const localVarPath = `/api/v1/models/{model.id}`
-                .replace(`{${"model.id"}}`, encodeURIComponent(String(modelId)));
+            const localVarPath = `/api/v1/models/{model.name}`
+                .replace(`{${"model.name"}}`, encodeURIComponent(String(modelName)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'PATCH' }, options);
             const localVarHeaderParameter = {} as any;
@@ -11829,22 +12259,22 @@ export const ModelsApiFetchParamCreator = function (configuration?: Configuratio
         /**
          * 
          * @summary Create a model version.
-         * @param {number} modelId The id of the model to add a version to.
+         * @param {string} modelName The name of the model to add a version to.
          * @param {V1PostModelVersionRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedPostModelVersion(modelId: number, body: V1PostModelVersionRequest, options: any = {}): FetchArgs {
-            // verify required parameter 'modelId' is not null or undefined
-            if (modelId === null || modelId === undefined) {
-                throw new RequiredError('modelId','Required parameter modelId was null or undefined when calling determinedPostModelVersion.');
+        determinedPostModelVersion(modelName: string, body: V1PostModelVersionRequest, options: any = {}): FetchArgs {
+            // verify required parameter 'modelName' is not null or undefined
+            if (modelName === null || modelName === undefined) {
+                throw new RequiredError('modelName','Required parameter modelName was null or undefined when calling determinedPostModelVersion.');
             }
             // verify required parameter 'body' is not null or undefined
             if (body === null || body === undefined) {
                 throw new RequiredError('body','Required parameter body was null or undefined when calling determinedPostModelVersion.');
             }
-            const localVarPath = `/api/v1/models/{modelId}/versions`
-                .replace(`{${"modelId"}}`, encodeURIComponent(String(modelId)));
+            const localVarPath = `/api/v1/models/{modelName}/versions`
+                .replace(`{${"modelName"}}`, encodeURIComponent(String(modelName)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
             const localVarHeaderParameter = {} as any;
@@ -11884,12 +12314,12 @@ export const ModelsApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Get the requested model.
-         * @param {number} modelId The name of the template.
+         * @param {string} modelName The name of the template.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModel(modelId: number, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelResponse> {
-            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModel(modelId, options);
+        determinedGetModel(modelName: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelResponse> {
+            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModel(modelName, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -11903,13 +12333,13 @@ export const ModelsApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Get the requested model version.
-         * @param {string} modelId The name of the model.
+         * @param {string} modelName The name of the model.
          * @param {number} modelVersion The version number.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModelVersion(modelId: string, modelVersion: number, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelVersionResponse> {
-            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModelVersion(modelId, modelVersion, options);
+        determinedGetModelVersion(modelName: string, modelVersion: number, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelVersionResponse> {
+            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModelVersion(modelName, modelVersion, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -11923,7 +12353,7 @@ export const ModelsApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Get a list of versions for the requested model.
-         * @param {number} modelId The id of the model.
+         * @param {string} modelName The name of the model.
          * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME'} [sortBy] Sort the model versions by the given field.   - SORT_BY_UNSPECIFIED: Returns model versions in an unsorted list.  - SORT_BY_VERSION: Returns model versions sorted by version number.  - SORT_BY_CREATION_TIME: Returns model versions sorted by creation_time.
          * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order model versions in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
          * @param {number} [offset] Skip the number of model versions before returning results. Negative values denote number of models to skip from the end before returning results.
@@ -11931,8 +12361,8 @@ export const ModelsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModelVersions(modelId: number, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelVersionsResponse> {
-            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModelVersions(modelId, sortBy, orderBy, offset, limit, options);
+        determinedGetModelVersions(modelName: string, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelVersionsResponse> {
+            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModelVersions(modelName, sortBy, orderBy, offset, limit, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -11946,20 +12376,17 @@ export const ModelsApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Get a list of models.
-         * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.  - SORT_BY_NUM_VERSIONS: Returns models sorted by number of version.
+         * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.
          * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order models in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
          * @param {number} [offset] Skip the number of models before returning results. Negative values denote number of models to skip from the end before returning results.
          * @param {number} [limit] Limit the number of models. A value of 0 denotes no limit.
          * @param {string} [name] Limit the models to those matching the name.
          * @param {string} [description] Limit the models to those matching the description.
-         * @param {Array<string>} [labels] Limit the models to those with the following labels.
-         * @param {boolean} [archived] Limit to unarchived models only.
-         * @param {Array<string>} [users] Limit the models to those made by the following users.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, labels?: Array<string>, archived?: boolean, users?: Array<string>, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelsResponse> {
-            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModels(sortBy, orderBy, offset, limit, name, description, labels, archived, users, options);
+        determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1GetModelsResponse> {
+            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedGetModels(sortBy, orderBy, offset, limit, name, description, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -11973,13 +12400,13 @@ export const ModelsApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Patch a model's fields.
-         * @param {number} modelId The id of this model.
+         * @param {string} modelName The name of the model.
          * @param {V1PatchModelRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedPatchModel(modelId: number, body: V1PatchModelRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1PatchModelResponse> {
-            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedPatchModel(modelId, body, options);
+        determinedPatchModel(modelName: string, body: V1PatchModelRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1PatchModelResponse> {
+            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedPatchModel(modelName, body, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -12013,13 +12440,13 @@ export const ModelsApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Create a model version.
-         * @param {number} modelId The id of the model to add a version to.
+         * @param {string} modelName The name of the model to add a version to.
          * @param {V1PostModelVersionRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedPostModelVersion(modelId: number, body: V1PostModelVersionRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1PostModelVersionResponse> {
-            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedPostModelVersion(modelId, body, options);
+        determinedPostModelVersion(modelName: string, body: V1PostModelVersionRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<V1PostModelVersionResponse> {
+            const localVarFetchArgs = ModelsApiFetchParamCreator(configuration).determinedPostModelVersion(modelName, body, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -12042,28 +12469,28 @@ export const ModelsApiFactory = function (configuration?: Configuration, fetch?:
         /**
          * 
          * @summary Get the requested model.
-         * @param {number} modelId The name of the template.
+         * @param {string} modelName The name of the template.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModel(modelId: number, options?: any) {
-            return ModelsApiFp(configuration).determinedGetModel(modelId, options)(fetch, basePath);
+        determinedGetModel(modelName: string, options?: any) {
+            return ModelsApiFp(configuration).determinedGetModel(modelName, options)(fetch, basePath);
         },
         /**
          * 
          * @summary Get the requested model version.
-         * @param {string} modelId The name of the model.
+         * @param {string} modelName The name of the model.
          * @param {number} modelVersion The version number.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModelVersion(modelId: string, modelVersion: number, options?: any) {
-            return ModelsApiFp(configuration).determinedGetModelVersion(modelId, modelVersion, options)(fetch, basePath);
+        determinedGetModelVersion(modelName: string, modelVersion: number, options?: any) {
+            return ModelsApiFp(configuration).determinedGetModelVersion(modelName, modelVersion, options)(fetch, basePath);
         },
         /**
          * 
          * @summary Get a list of versions for the requested model.
-         * @param {number} modelId The id of the model.
+         * @param {string} modelName The name of the model.
          * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME'} [sortBy] Sort the model versions by the given field.   - SORT_BY_UNSPECIFIED: Returns model versions in an unsorted list.  - SORT_BY_VERSION: Returns model versions sorted by version number.  - SORT_BY_CREATION_TIME: Returns model versions sorted by creation_time.
          * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order model versions in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
          * @param {number} [offset] Skip the number of model versions before returning results. Negative values denote number of models to skip from the end before returning results.
@@ -12071,37 +12498,34 @@ export const ModelsApiFactory = function (configuration?: Configuration, fetch?:
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModelVersions(modelId: number, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options?: any) {
-            return ModelsApiFp(configuration).determinedGetModelVersions(modelId, sortBy, orderBy, offset, limit, options)(fetch, basePath);
+        determinedGetModelVersions(modelName: string, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options?: any) {
+            return ModelsApiFp(configuration).determinedGetModelVersions(modelName, sortBy, orderBy, offset, limit, options)(fetch, basePath);
         },
         /**
          * 
          * @summary Get a list of models.
-         * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.  - SORT_BY_NUM_VERSIONS: Returns models sorted by number of version.
+         * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.
          * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order models in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
          * @param {number} [offset] Skip the number of models before returning results. Negative values denote number of models to skip from the end before returning results.
          * @param {number} [limit] Limit the number of models. A value of 0 denotes no limit.
          * @param {string} [name] Limit the models to those matching the name.
          * @param {string} [description] Limit the models to those matching the description.
-         * @param {Array<string>} [labels] Limit the models to those with the following labels.
-         * @param {boolean} [archived] Limit to unarchived models only.
-         * @param {Array<string>} [users] Limit the models to those made by the following users.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, labels?: Array<string>, archived?: boolean, users?: Array<string>, options?: any) {
-            return ModelsApiFp(configuration).determinedGetModels(sortBy, orderBy, offset, limit, name, description, labels, archived, users, options)(fetch, basePath);
+        determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, options?: any) {
+            return ModelsApiFp(configuration).determinedGetModels(sortBy, orderBy, offset, limit, name, description, options)(fetch, basePath);
         },
         /**
          * 
          * @summary Patch a model's fields.
-         * @param {number} modelId The id of this model.
+         * @param {string} modelName The name of the model.
          * @param {V1PatchModelRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedPatchModel(modelId: number, body: V1PatchModelRequest, options?: any) {
-            return ModelsApiFp(configuration).determinedPatchModel(modelId, body, options)(fetch, basePath);
+        determinedPatchModel(modelName: string, body: V1PatchModelRequest, options?: any) {
+            return ModelsApiFp(configuration).determinedPatchModel(modelName, body, options)(fetch, basePath);
         },
         /**
          * 
@@ -12117,13 +12541,13 @@ export const ModelsApiFactory = function (configuration?: Configuration, fetch?:
         /**
          * 
          * @summary Create a model version.
-         * @param {number} modelId The id of the model to add a version to.
+         * @param {string} modelName The name of the model to add a version to.
          * @param {V1PostModelVersionRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        determinedPostModelVersion(modelId: number, body: V1PostModelVersionRequest, options?: any) {
-            return ModelsApiFp(configuration).determinedPostModelVersion(modelId, body, options)(fetch, basePath);
+        determinedPostModelVersion(modelName: string, body: V1PostModelVersionRequest, options?: any) {
+            return ModelsApiFp(configuration).determinedPostModelVersion(modelName, body, options)(fetch, basePath);
         },
     };
 };
@@ -12138,32 +12562,32 @@ export class ModelsApi extends BaseAPI {
     /**
      * 
      * @summary Get the requested model.
-     * @param {number} modelId The name of the template.
+     * @param {string} modelName The name of the template.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ModelsApi
      */
-    public determinedGetModel(modelId: number, options?: any) {
-        return ModelsApiFp(this.configuration).determinedGetModel(modelId, options)(this.fetch, this.basePath);
+    public determinedGetModel(modelName: string, options?: any) {
+        return ModelsApiFp(this.configuration).determinedGetModel(modelName, options)(this.fetch, this.basePath);
     }
 
     /**
      * 
      * @summary Get the requested model version.
-     * @param {string} modelId The name of the model.
+     * @param {string} modelName The name of the model.
      * @param {number} modelVersion The version number.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ModelsApi
      */
-    public determinedGetModelVersion(modelId: string, modelVersion: number, options?: any) {
-        return ModelsApiFp(this.configuration).determinedGetModelVersion(modelId, modelVersion, options)(this.fetch, this.basePath);
+    public determinedGetModelVersion(modelName: string, modelVersion: number, options?: any) {
+        return ModelsApiFp(this.configuration).determinedGetModelVersion(modelName, modelVersion, options)(this.fetch, this.basePath);
     }
 
     /**
      * 
      * @summary Get a list of versions for the requested model.
-     * @param {number} modelId The id of the model.
+     * @param {string} modelName The name of the model.
      * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME'} [sortBy] Sort the model versions by the given field.   - SORT_BY_UNSPECIFIED: Returns model versions in an unsorted list.  - SORT_BY_VERSION: Returns model versions sorted by version number.  - SORT_BY_CREATION_TIME: Returns model versions sorted by creation_time.
      * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order model versions in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
      * @param {number} [offset] Skip the number of model versions before returning results. Negative values denote number of models to skip from the end before returning results.
@@ -12172,41 +12596,38 @@ export class ModelsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ModelsApi
      */
-    public determinedGetModelVersions(modelId: number, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options?: any) {
-        return ModelsApiFp(this.configuration).determinedGetModelVersions(modelId, sortBy, orderBy, offset, limit, options)(this.fetch, this.basePath);
+    public determinedGetModelVersions(modelName: string, sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_VERSION' | 'SORT_BY_CREATION_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, options?: any) {
+        return ModelsApiFp(this.configuration).determinedGetModelVersions(modelName, sortBy, orderBy, offset, limit, options)(this.fetch, this.basePath);
     }
 
     /**
      * 
      * @summary Get a list of models.
-     * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.  - SORT_BY_NUM_VERSIONS: Returns models sorted by number of version.
+     * @param {'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME'} [sortBy] Sort the models by the given field.   - SORT_BY_UNSPECIFIED: Returns models in an unsorted list.  - SORT_BY_NAME: Returns models sorted by name.  - SORT_BY_DESCRIPTION: Returns models sorted by description.  - SORT_BY_CREATION_TIME: Returns models sorted by creation time.  - SORT_BY_LAST_UPDATED_TIME: Returns models sorted by last updated time.
      * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order models in either ascending or descending order.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
      * @param {number} [offset] Skip the number of models before returning results. Negative values denote number of models to skip from the end before returning results.
      * @param {number} [limit] Limit the number of models. A value of 0 denotes no limit.
      * @param {string} [name] Limit the models to those matching the name.
      * @param {string} [description] Limit the models to those matching the description.
-     * @param {Array<string>} [labels] Limit the models to those with the following labels.
-     * @param {boolean} [archived] Limit to unarchived models only.
-     * @param {Array<string>} [users] Limit the models to those made by the following users.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ModelsApi
      */
-    public determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME' | 'SORT_BY_NUM_VERSIONS', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, labels?: Array<string>, archived?: boolean, users?: Array<string>, options?: any) {
-        return ModelsApiFp(this.configuration).determinedGetModels(sortBy, orderBy, offset, limit, name, description, labels, archived, users, options)(this.fetch, this.basePath);
+    public determinedGetModels(sortBy?: 'SORT_BY_UNSPECIFIED' | 'SORT_BY_NAME' | 'SORT_BY_DESCRIPTION' | 'SORT_BY_CREATION_TIME' | 'SORT_BY_LAST_UPDATED_TIME', orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', offset?: number, limit?: number, name?: string, description?: string, options?: any) {
+        return ModelsApiFp(this.configuration).determinedGetModels(sortBy, orderBy, offset, limit, name, description, options)(this.fetch, this.basePath);
     }
 
     /**
      * 
      * @summary Patch a model's fields.
-     * @param {number} modelId The id of this model.
+     * @param {string} modelName The name of the model.
      * @param {V1PatchModelRequest} body 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ModelsApi
      */
-    public determinedPatchModel(modelId: number, body: V1PatchModelRequest, options?: any) {
-        return ModelsApiFp(this.configuration).determinedPatchModel(modelId, body, options)(this.fetch, this.basePath);
+    public determinedPatchModel(modelName: string, body: V1PatchModelRequest, options?: any) {
+        return ModelsApiFp(this.configuration).determinedPatchModel(modelName, body, options)(this.fetch, this.basePath);
     }
 
     /**
@@ -12225,14 +12646,14 @@ export class ModelsApi extends BaseAPI {
     /**
      * 
      * @summary Create a model version.
-     * @param {number} modelId The id of the model to add a version to.
+     * @param {string} modelName The name of the model to add a version to.
      * @param {V1PostModelVersionRequest} body 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ModelsApi
      */
-    public determinedPostModelVersion(modelId: number, body: V1PostModelVersionRequest, options?: any) {
-        return ModelsApiFp(this.configuration).determinedPostModelVersion(modelId, body, options)(this.fetch, this.basePath);
+    public determinedPostModelVersion(modelName: string, body: V1PostModelVersionRequest, options?: any) {
+        return ModelsApiFp(this.configuration).determinedPostModelVersion(modelName, body, options)(this.fetch, this.basePath);
     }
 
 }
@@ -13519,6 +13940,302 @@ export class ShellsApi extends BaseAPI {
      */
     public determinedSetShellPriority(shellId: string, body: V1SetShellPriorityRequest, options?: any) {
         return ShellsApiFp(this.configuration).determinedSetShellPriority(shellId, body, options)(this.fetch, this.basePath);
+    }
+
+}
+
+/**
+ * TasksApi - fetch parameter creator
+ * @export
+ */
+export const TasksApiFetchParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary Stream task logs.
+         * @param {string} taskId The id of the task.
+         * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+         * @param {boolean} [follow] Continue following logs until the trial stops.
+         * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+         * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+         * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+         * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+         * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+         * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+         * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+         * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+         * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+         * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options: any = {}): FetchArgs {
+            // verify required parameter 'taskId' is not null or undefined
+            if (taskId === null || taskId === undefined) {
+                throw new RequiredError('taskId','Required parameter taskId was null or undefined when calling determinedTaskLogs.');
+            }
+            const localVarPath = `/api/v1/tasks/{taskId}/logs`
+                .replace(`{${"taskId"}}`, encodeURIComponent(String(taskId)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerToken required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("Authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["Authorization"] = localVarApiKeyValue;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (follow !== undefined) {
+                localVarQueryParameter['follow'] = follow;
+            }
+
+            if (allocationIds) {
+                localVarQueryParameter['allocationIds'] = allocationIds;
+            }
+
+            if (agentIds) {
+                localVarQueryParameter['agentIds'] = agentIds;
+            }
+
+            if (containerIds) {
+                localVarQueryParameter['containerIds'] = containerIds;
+            }
+
+            if (rankIds) {
+                localVarQueryParameter['rankIds'] = rankIds;
+            }
+
+            if (levels) {
+                localVarQueryParameter['levels'] = levels;
+            }
+
+            if (stdtypes) {
+                localVarQueryParameter['stdtypes'] = stdtypes;
+            }
+
+            if (sources) {
+                localVarQueryParameter['sources'] = sources;
+            }
+
+            if (timestampBefore !== undefined) {
+                localVarQueryParameter['timestampBefore'] = (timestampBefore as any).toISOString();
+            }
+
+            if (timestampAfter !== undefined) {
+                localVarQueryParameter['timestampAfter'] = (timestampAfter as any).toISOString();
+            }
+
+            if (orderBy !== undefined) {
+                localVarQueryParameter['orderBy'] = orderBy;
+            }
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Stream task log fields.
+         * @param {string} taskId The ID of the task.
+         * @param {boolean} [follow] Continue following fields until the task stops.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogsFields(taskId: string, follow?: boolean, options: any = {}): FetchArgs {
+            // verify required parameter 'taskId' is not null or undefined
+            if (taskId === null || taskId === undefined) {
+                throw new RequiredError('taskId','Required parameter taskId was null or undefined when calling determinedTaskLogsFields.');
+            }
+            const localVarPath = `/api/v1/tasks/{taskId}/logs/fields`
+                .replace(`{${"taskId"}}`, encodeURIComponent(String(taskId)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerToken required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("Authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["Authorization"] = localVarApiKeyValue;
+            }
+
+            if (follow !== undefined) {
+                localVarQueryParameter['follow'] = follow;
+            }
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * TasksApi - functional programming interface
+ * @export
+ */
+export const TasksApiFp = function(configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary Stream task logs.
+         * @param {string} taskId The id of the task.
+         * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+         * @param {boolean} [follow] Continue following logs until the trial stops.
+         * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+         * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+         * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+         * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+         * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+         * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+         * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+         * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+         * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+         * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<StreamResultOfV1TaskLogsResponse> {
+            const localVarFetchArgs = TasksApiFetchParamCreator(configuration).determinedTaskLogs(taskId, limit, follow, allocationIds, agentIds, containerIds, rankIds, levels, stdtypes, sources, timestampBefore, timestampAfter, orderBy, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
+        /**
+         * 
+         * @summary Stream task log fields.
+         * @param {string} taskId The ID of the task.
+         * @param {boolean} [follow] Continue following fields until the task stops.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogsFields(taskId: string, follow?: boolean, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<StreamResultOfV1TaskLogsFieldsResponse> {
+            const localVarFetchArgs = TasksApiFetchParamCreator(configuration).determinedTaskLogsFields(taskId, follow, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
+    }
+};
+
+/**
+ * TasksApi - factory interface
+ * @export
+ */
+export const TasksApiFactory = function (configuration?: Configuration, fetch?: FetchAPI, basePath?: string) {
+    return {
+        /**
+         * 
+         * @summary Stream task logs.
+         * @param {string} taskId The id of the task.
+         * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+         * @param {boolean} [follow] Continue following logs until the trial stops.
+         * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+         * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+         * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+         * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+         * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+         * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+         * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+         * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+         * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+         * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options?: any) {
+            return TasksApiFp(configuration).determinedTaskLogs(taskId, limit, follow, allocationIds, agentIds, containerIds, rankIds, levels, stdtypes, sources, timestampBefore, timestampAfter, orderBy, options)(fetch, basePath);
+        },
+        /**
+         * 
+         * @summary Stream task log fields.
+         * @param {string} taskId The ID of the task.
+         * @param {boolean} [follow] Continue following fields until the task stops.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        determinedTaskLogsFields(taskId: string, follow?: boolean, options?: any) {
+            return TasksApiFp(configuration).determinedTaskLogsFields(taskId, follow, options)(fetch, basePath);
+        },
+    };
+};
+
+/**
+ * TasksApi - object-oriented interface
+ * @export
+ * @class TasksApi
+ * @extends {BaseAPI}
+ */
+export class TasksApi extends BaseAPI {
+    /**
+     * 
+     * @summary Stream task logs.
+     * @param {string} taskId The id of the task.
+     * @param {number} [limit] Limit the number of trial logs. A value of 0 denotes no limit.
+     * @param {boolean} [follow] Continue following logs until the trial stops.
+     * @param {Array<string>} [allocationIds] Limit the task logs to particular allocations.
+     * @param {Array<string>} [agentIds] Limit the trial logs to a subset of agents.
+     * @param {Array<string>} [containerIds] Limit the trial logs to a subset of containers.
+     * @param {Array<number>} [rankIds] Limit the trial logs to a subset of ranks.
+     * @param {Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>} [levels] Limit the trial logs to a subset of agents.   - LOG_LEVEL_UNSPECIFIED: Unspecified log level.  - LOG_LEVEL_TRACE: A log level of TRACE.  - LOG_LEVEL_DEBUG: A log level of DEBUG.  - LOG_LEVEL_INFO: A log level of INFO.  - LOG_LEVEL_WARNING: A log level of WARNING.  - LOG_LEVEL_ERROR: A log level of ERROR.  - LOG_LEVEL_CRITICAL: A log level of CRITICAL.
+     * @param {Array<string>} [stdtypes] Limit the trial logs to a subset of output streams.
+     * @param {Array<string>} [sources] Limit the trial logs to a subset of sources.
+     * @param {Date} [timestampBefore] Limit the trial logs to ones with a timestamp before a given time.
+     * @param {Date} [timestampAfter] Limit the trial logs to ones with a timestamp after a given time.
+     * @param {'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC'} [orderBy] Order logs in either ascending or descending order by timestamp.   - ORDER_BY_UNSPECIFIED: Returns records in no specific order.  - ORDER_BY_ASC: Returns records in ascending order.  - ORDER_BY_DESC: Returns records in descending order.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TasksApi
+     */
+    public determinedTaskLogs(taskId: string, limit?: number, follow?: boolean, allocationIds?: Array<string>, agentIds?: Array<string>, containerIds?: Array<string>, rankIds?: Array<number>, levels?: Array<'LOG_LEVEL_UNSPECIFIED' | 'LOG_LEVEL_TRACE' | 'LOG_LEVEL_DEBUG' | 'LOG_LEVEL_INFO' | 'LOG_LEVEL_WARNING' | 'LOG_LEVEL_ERROR' | 'LOG_LEVEL_CRITICAL'>, stdtypes?: Array<string>, sources?: Array<string>, timestampBefore?: Date, timestampAfter?: Date, orderBy?: 'ORDER_BY_UNSPECIFIED' | 'ORDER_BY_ASC' | 'ORDER_BY_DESC', options?: any) {
+        return TasksApiFp(this.configuration).determinedTaskLogs(taskId, limit, follow, allocationIds, agentIds, containerIds, rankIds, levels, stdtypes, sources, timestampBefore, timestampAfter, orderBy, options)(this.fetch, this.basePath);
+    }
+
+    /**
+     * 
+     * @summary Stream task log fields.
+     * @param {string} taskId The ID of the task.
+     * @param {boolean} [follow] Continue following fields until the task stops.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TasksApi
+     */
+    public determinedTaskLogsFields(taskId: string, follow?: boolean, options?: any) {
+        return TasksApiFp(this.configuration).determinedTaskLogsFields(taskId, follow, options)(this.fetch, this.basePath);
     }
 
 }

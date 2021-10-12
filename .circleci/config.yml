@@ -142,7 +142,7 @@ commands:
       - run: make -C agent get-deps
       - start-devcluster:
           target-stage: elastic
-          devcluster-config: elastic.devcluster.yaml
+          devcluster-config: elastic-base.devcluster.yaml
 
   go-get-deps:
     steps:
@@ -1874,6 +1874,7 @@ workflows:
           tf1: false
           tf2: true
           mark: e2e_cpu_elastic
+          devcluster-config: elastic.devcluster.yaml
           target-stage: agent
 
       - test-e2e-webui:

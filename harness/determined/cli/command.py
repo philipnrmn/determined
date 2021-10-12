@@ -274,7 +274,7 @@ def launch_command(
     template: str,
     context_path: Optional[Path] = None,
     data: Optional[Dict[str, Any]] = None,
-    preview: Optional[bool]  = False,
+    preview: Optional[bool] = False,
     extras: Optional[Dict[str, Any]] = None,
 ) -> Any:
     user_files = []  # type: List[Dict[str, Any]]

@@ -467,7 +467,8 @@ service Determined {
     option deprecated = true;
   }
   // Set allocation to ready state.
-  rpc AllocationReady(AllocationReadyRequest) returns (AllocationReadyResponse) {
+  rpc AllocationReady(AllocationReadyRequest)
+      returns (AllocationReadyResponse) {
     option (google.api.http) = {
       post: "/api/v1/allocations/{allocation_id}/ready"
       body: "*"
