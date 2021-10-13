@@ -32,11 +32,7 @@ def run_command(args: Namespace) -> None:
         print(resp["id"])
         return
 
-    url = "commands/{}/events".format(resp["id"])
-
-    with api.ws(args.master, url) as ws:
-        for msg in ws:
-            render_event_stream(msg)
+    api.pprint_task_logs(args.master, resp["id"], follow=True)
 
 
 # fmt: off
