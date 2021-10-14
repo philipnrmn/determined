@@ -50,5 +50,4 @@ test -f "${STARTUP_HOOK}" && source "${STARTUP_HOOK}"
 READINESS_REGEX="TensorBoard contains metrics"
 TENSORBOARD_VERSION=$(pip show tensorboard | grep Version | sed "s/[^:]*: *//")
 exec "$DET_PYTHON_EXECUTABLE" -m determined.exec.tensorboard "$TENSORBOARD_VERSION" "$@" \
-    > >(tee -p >(exec "$DET_PYTHON_EXECUTABLE" /run/determined/check_ready_logs.py --ready-regex "$READINESS_REGEX")) \
-    2> >(tee -p >(exec "$DET_PYTHON_EXECUTABLE" /run/determined/check_ready_logs.py --ready-regex "$READINESS_REGEX") >&2)
+    > >(tee -p >(exec "$DET_PYTHON_EXECUTABLE" /run/determined/check_ready_logs.py --ready-regex "$READINESS_REGEX"))

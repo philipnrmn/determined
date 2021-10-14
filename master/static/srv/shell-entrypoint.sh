@@ -87,5 +87,4 @@ sed -e "s/^/$options /" "$unmodified" > "$modified"
 
 READINESS_REGEX="Server listening on"
 exec /usr/sbin/sshd "$@" \
-    > >(tee -p >(exec "$DET_PYTHON_EXECUTABLE" /run/determined/check_ready_logs.py --ready-regex "$READINESS_REGEX")) \
-    2> >(tee -p >(exec "$DET_PYTHON_EXECUTABLE" /run/determined/check_ready_logs.py --ready-regex "$READINESS_REGEX") >&2)
+    > >(tee -p >(exec "$DET_PYTHON_EXECUTABLE" /run/determined/check_ready_logs.py --ready-regex "$READINESS_REGEX"))
