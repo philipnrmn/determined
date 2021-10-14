@@ -53,12 +53,12 @@ var (
 )
 
 // TrialLogBackend is an interface trial log backends, such as elastic or postgres,
-// must support to provide the features surfaced in API.
+// must support to provide the features surfaced in API. This is deprecated, note it
+// no longer supports adding logs in favor of unified logs.
 type TrialLogBackend interface {
 	TrialLogs(
 		trialID, limit int, filters []api.Filter, order apiv1.OrderBy, state interface{},
 	) ([]*model.TrialLog, interface{}, error)
-	AddTrialLogs([]*model.TrialLog) error
 	TrialLogsCount(trialID int, filters []api.Filter) (int, error)
 	TrialLogsFields(trialID int) (*apiv1.TrialLogsFieldsResponse, error)
 	DeleteTrialLogs(trialIDs []int) error
@@ -77,10 +77,13 @@ func (a *apiServer) TrialLogs(
 		taskID = t.TaskID
 	}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{}, 1)
 	switch t, err := a.m.db.TaskByID(taskID); {
 	case errors.Is(err, sql.ErrNoRows), t.LogVersion == 0:
-		go a.legacyTrialLogs(resp.Context(), req, res)
+		go a.legacyTrialLogs(ctx, req, res)
 		return processBatches(res, func(b api.Batch) error {
 			return b.ForEach(func(i interface{}) error {
 				l, err := i.(*model.TrialLog).Proto()
@@ -92,7 +95,7 @@ func (a *apiServer) TrialLogs(
 		})
 	default:
 		// Translate the request.
-		go a.taskLogs(resp.Context(), &apiv1.TaskLogsRequest{
+		go a.taskLogs(ctx, &apiv1.TaskLogsRequest{
 			TaskId:          string(taskID),
 			Limit:           req.Limit,
 			Follow:          req.Follow,
@@ -248,6 +251,9 @@ func (a *apiServer) TrialLogsFields(
 		return api.ToBatchOfOne(fields), err
 	}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{})
 	go api.NewBatchStreamProcessor(
 		api.BatchRequest{Follow: req.Follow},
@@ -256,7 +262,7 @@ func (a *apiServer) TrialLogsFields(
 		true,
 		taskLogsFieldsBatchWaitTime,
 		taskLogsFieldsBatchWaitTime,
-	).Run(resp.Context(), res)
+	).Run(ctx, res)
 
 	return processBatches(res, func(b api.Batch) error {
 		return b.ForEach(func(r interface{}) error {
@@ -479,6 +485,9 @@ func (a *apiServer) GetTrialProfilerMetrics(
 		return a.m.db.GetTrialProfilerMetricsBatches(labelsJSON, lr.Offset, lr.Limit)
 	}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{})
 	go api.NewBatchStreamProcessor(
 		api.BatchRequest{Limit: math.MaxInt32, Follow: req.Follow},
@@ -487,7 +496,7 @@ func (a *apiServer) GetTrialProfilerMetrics(
 		false,
 		trialProfilerMetricsBatchWaitTime,
 		trialProfilerMetricsBatchMissWaitTime,
-	).Run(resp.Context(), res)
+	).Run(ctx, res)
 
 	return processBatches(res, func(b api.Batch) error {
 		return b.ForEach(func(r interface{}) error {
@@ -517,6 +526,9 @@ func (a *apiServer) GetTrialProfilerAvailableSeries(
 		)
 	}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{})
 	go api.NewBatchStreamProcessor(
 		api.BatchRequest{Follow: req.Follow},
@@ -525,7 +537,7 @@ func (a *apiServer) GetTrialProfilerAvailableSeries(
 		true,
 		TrialAvailableSeriesBatchWaitTime,
 		TrialAvailableSeriesBatchWaitTime,
-	).Run(resp.Context(), res)
+	).Run(ctx, res)
 
 	return processBatches(res, func(b api.Batch) error {
 		return b.ForEach(func(r interface{}) error {

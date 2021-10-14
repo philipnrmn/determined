@@ -73,6 +73,9 @@ func (a *apiServer) MasterLogs(
 	offset, limit := api.EffectiveOffsetNLimit(int(req.Offset), int(req.Limit), total)
 	lReq := api.BatchRequest{Offset: offset, Limit: limit, Follow: req.Follow}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{}, 1)
 	go api.NewBatchStreamProcessor(
 		lReq,
@@ -81,7 +84,8 @@ func (a *apiServer) MasterLogs(
 		false,
 		masterLogsBatchWaitTime,
 		masterLogsBatchMissWaitTime,
-	).Run(resp.Context(), res)
+	).Run(ctx, res)
+
 	return processBatches(res, func(b api.Batch) error {
 		return b.ForEach(func(r interface{}) error {
 			lr := r.(*logger.Entry)

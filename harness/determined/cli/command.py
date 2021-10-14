@@ -275,15 +275,15 @@ def launch_command(
     context_path: Optional[Path] = None,
     data: Optional[Dict[str, Any]] = None,
     preview: Optional[bool] = False,
-    extras: Optional[Dict[str, Any]] = None,
+    default_body: Optional[Dict[str, Any]] = None,
 ) -> Any:
     user_files = []  # type: List[Dict[str, Any]]
     if context_path:
         user_files, _ = context.read_context(context_path)
 
     body = {}  # type: Dict[str, Any]
-    if extras:
-        body.update(extras)
+    if default_body:
+        body.update(default_body)
 
     body["config"] = config
 

@@ -82,7 +82,9 @@ func NewBatchStreamProcessor(
 	}
 }
 
-// Run runs the batch stream processor.
+// Run runs the batch stream processor. There is an implicit assumption upstream that errors
+// won't be sent forever, so after encountering an error in Run, we should log and continue
+// or send and return.
 func (p *BatchStreamProcessor) Run(ctx context.Context, res chan interface{}) {
 	t := time.NewTicker(p.batchWaitTime)
 	defer t.Stop()

@@ -33,15 +33,15 @@ type queryHandler interface {
 
 // TaskByID returns a task by its ID.
 func (db *PgDB) TaskByID(taskID model.TaskID) (model.Task, error) {
-	status := model.Task{}
+	task := model.Task{}
 	if err := db.sql.QueryRowx(`
 SELECT task_id, task_type, start_time, end_time, log_version
 FROM tasks
 WHERE task_id = $1
-`, taskID).StructScan(&status); err != nil {
+`, taskID).StructScan(&task); err != nil {
 		return model.Task{}, errors.Wrap(err, "querying task")
 	}
-	return status, nil
+	return task, nil
 }
 
 // CheckTaskExists checks if the task exists.
@@ -182,7 +182,7 @@ func (db *PgDB) TaskLogs(
 	query := fmt.Sprintf(`
 SELECT
     l.id,
-	l.task_id,
+    l.task_id,
     l.allocation_id,
     l.agent_id,
     l.container_id,
@@ -219,7 +219,7 @@ func (db *PgDB) AddTaskLogs(logs []*model.TaskLog) error {
 	text.WriteString(`
 INSERT INTO task_logs
   (task_id, allocation_id, log, agent_id, container_id, rank_id, timestamp, level, stdtype, source)
- VALUES
+VALUES
 `)
 
 	args := make([]interface{}, 0, len(logs)*10)
@@ -247,7 +247,7 @@ INSERT INTO task_logs
 func (db *PgDB) DeleteTaskLogs(ids []model.TaskID) error {
 	if _, err := db.sql.Exec(`
 DELETE FROM task_logs
-WHERE task_id IN (SELECT unnest($1::int [])::int);
+WHERE task_id IN (SELECT unnest($1::text [])::text);
 `, ids); err != nil {
 		return errors.Wrapf(err, "error deleting task logs for task %v", ids)
 	}

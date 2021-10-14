@@ -1503,6 +1503,28 @@ WHERE trials.experiment_id = $1
 	return trialIDs, nil
 }
 
+// ExperimentTrialAndTaskIDs returns the trial and task IDs for the experiment.
+func (db *PgDB) ExperimentTrialAndTaskIDs(expID int) ([]int, []model.TaskID, error) {
+	var trialIDRows []struct {
+		ID     int
+		TaskID model.TaskID
+	}
+	if err := db.queryRows(`
+SELECT id, task_id
+FROM trials
+WHERE trials.experiment_id = $1
+`, &trialIDRows, expID); err != nil {
+		return nil, nil, errors.Wrapf(err, "querying for trial IDs of experiment %v", expID)
+	}
+	var trialIDs []int
+	var taskIDs []model.TaskID
+	for _, r := range trialIDRows {
+		trialIDs = append(trialIDs, r.ID)
+		taskIDs = append(taskIDs, r.TaskID)
+	}
+	return trialIDs, taskIDs, nil
+}
+
 // ExperimentNumSteps returns the total number of steps for all trials of the experiment.
 func (db *PgDB) ExperimentNumSteps(id int) (int64, error) {
 	var numSteps int64

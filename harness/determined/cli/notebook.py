@@ -43,6 +43,7 @@ def start_notebook(args: Namespace) -> None:
         print(obj["id"])
         return
 
+    # TODO(XXX): Print logs here (and elsewhere) as usual.
     with api.ws(args.master, "notebooks/{}/events".format(obj["id"])) as ws:
         for msg in ws:
             if msg["service_ready_event"] and not args.no_browser:

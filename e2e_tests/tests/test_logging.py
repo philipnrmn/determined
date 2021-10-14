@@ -71,7 +71,7 @@ def test_task_logs(
         f"api/v1/{command.RemoteTaskNewAPIs[task_type]}",
         task_config,
         "",
-        extras=task_extras,
+        default_body=task_extras,
     )
     task_id = resp[command.RemoteTaskName[task_type]]["id"]
     try:

@@ -84,8 +84,11 @@ func (a *apiServer) NotebookLogs(
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{}, 1)
-	go a.taskLogs(resp.Context(), &apiv1.TaskLogsRequest{
+	go a.taskLogs(ctx, &apiv1.TaskLogsRequest{
 		TaskId: req.NotebookId,
 		Limit:  req.Limit,
 		// TODO(XXX): Offset is no longer supported.

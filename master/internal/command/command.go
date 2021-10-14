@@ -158,11 +158,6 @@ func (c *command) Receive(ctx *actor.Context) error {
 			}
 		}
 	case actor.ChildStopped:
-		if c.exitStatus == nil {
-			if err := c.db.CompleteTask(c.taskID, time.Now().UTC()); err != nil {
-				ctx.Log().WithError(err).Error("marking task complete")
-			}
-		}
 	case actor.ChildFailed:
 		if msg.Child.Address().Local() == c.allocationID.String() && c.exitStatus == nil {
 			c.exitStatus = &task.AllocationExited{

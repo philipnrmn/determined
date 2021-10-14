@@ -7,13 +7,7 @@ from determined.common import api
 from determined.common.api import authentication
 from determined.common.declarative_argparse import Arg, Cmd, Group
 
-from .command import (
-    CONFIG_DESC,
-    CONTEXT_DESC,
-    VOLUME_DESC,
-    launch_command,
-    parse_config,
-)
+from .command import CONFIG_DESC, CONTEXT_DESC, VOLUME_DESC, launch_command, parse_config
 
 
 @authentication.required
@@ -67,11 +61,11 @@ args_description = [
                 help="run in the background and print the ID")
         ]),
         Cmd("logs", task.logs, "fetch command logs", [
-            Arg("task_id", help="X command ID", metavar="command_id"),
+            Arg("task_id", help="command ID", metavar="command_id"),
             *task.common_log_options,
         ]),
         Cmd("kill", command.kill, "forcibly terminate a command", [
-            Arg("command_id", help="XX command ID", nargs=ONE_OR_MORE),
+            Arg("command_id", help="command ID", nargs=ONE_OR_MORE),
             Arg("-f", "--force", action="store_true", help="ignore errors"),
         ]),
         Cmd("set", None, "set command attributes", [

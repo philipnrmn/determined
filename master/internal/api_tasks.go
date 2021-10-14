@@ -49,8 +49,8 @@ func (a *apiServer) AllocationReady(
 	return &apiv1.AllocationReadyResponse{}, nil
 }
 
-// TaskLogBackend is an interface trial log backends, such as elastic or postgres,
-// must support to provide the features surfaced in API.
+// TaskLogBackend is an interface task log backends, such as elastic or postgres,
+// must support to provide the features surfaced in our API.
 type TaskLogBackend interface {
 	TaskLogs(
 		taskID model.TaskID, limit int, filters []api.Filter, order apiv1.OrderBy, state interface{},
@@ -79,8 +79,11 @@ func (a *apiServer) TaskLogs(
 		return taskNotFound
 	}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{})
-	go a.taskLogs(resp.Context(), req, res)
+	go a.taskLogs(ctx, req, res)
 
 	return processBatches(res, func(b api.Batch) error {
 		return b.ForEach(func(i interface{}) error {
@@ -214,6 +217,9 @@ func (a *apiServer) TaskLogsFields(
 		return api.ToBatchOfOne(fields), err
 	}
 
+	ctx, cancel := context.WithCancel(resp.Context())
+	defer cancel()
+
 	res := make(chan interface{})
 	go api.NewBatchStreamProcessor(
 		api.BatchRequest{Follow: req.Follow},
@@ -222,7 +228,7 @@ func (a *apiServer) TaskLogsFields(
 		true,
 		taskLogsFieldsBatchWaitTime,
 		taskLogsFieldsBatchWaitTime,
-	).Run(resp.Context(), res)
+	).Run(ctx, res)
 
 	return processBatches(res, func(b api.Batch) error {
 		return b.ForEach(func(r interface{}) error {
@@ -258,11 +264,10 @@ func processBatches(res chan interface{}, h func(api.Batch) error) error {
 			// processor to fail from its error or continue.
 			err = multierror.Append(err, r)
 		case api.Batch:
-			if pErr := h(r); pErr != nil {
-				err = multierror.Append(err, pErr)
+			if hErr := h(r); hErr != nil {
 				// Since this is our failure, we fail and return. This should cause upstream
 				// processses and cause downstream senders to cancel.
-				return err.ErrorOrNil()
+				return hErr
 			}
 		default:
 			panic(fmt.Sprintf("unexpected result %T", r))

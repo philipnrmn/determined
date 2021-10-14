@@ -14,40 +14,6 @@ import (
 	"github.com/determined-ai/determined/master/pkg/model"
 )
 
-// AddTrialLogs indexes a batch of trial logs into the index like triallogs-yyyy-MM-dd based
-// on the UTC value of their timestamp.
-func (e *Elastic) AddTrialLogs(logs []*model.TrialLog) error {
-	indexToLogs := map[string][]*model.TrialLog{}
-	for _, l := range logs {
-		index := logstashIndexFromTimestamp(l.Timestamp)
-		indexToLogs[index] = append(indexToLogs[index], l)
-	}
-	// NOTE: This could potentially use the bulk APIs, but the official
-	// client's support for them is very heavy - it is built to spawn
-	// multiple go routines and use persistent bulk indexer objects - way
-	// overkill (to the point of being slower) for the small number of logs that go here now.
-	// See: https://github.com/elastic/go-elasticsearch/blob/master/_examples/bulk/indexer.go
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	for index, logs := range indexToLogs {
-		for _, l := range logs {
-			if err := enc.Encode(l); err != nil {
-				return errors.Wrap(err, "failed to make index request body")
-			}
-			res, err := e.client.Index(index, &buf)
-			if err != nil {
-				return errors.Wrapf(err, "failed to index document")
-			}
-			err = checkResponse(res)
-			closeWithErrCheck(res.Body)
-			if err != nil {
-				return errors.Wrap(err, "failed to index document")
-			}
-		}
-	}
-	return nil
-}
-
 // TrialLogsCount returns the number of trial logs for the given trial.
 func (e *Elastic) TrialLogsCount(trialID int, fs []api.Filter) (int, error) {
 	count, err := e.count(jsonObj{

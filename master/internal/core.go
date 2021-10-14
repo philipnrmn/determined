@@ -599,26 +599,15 @@ func (m *Master) Run(ctx context.Context) error {
 
 	switch {
 	case m.config.Logging.DefaultLoggingConfig != nil:
+		m.trialLogBackend = m.db
 		m.taskLogBackend = m.db
 	case m.config.Logging.ElasticLoggingConfig != nil:
 		es, eErr := elastic.Setup(*m.config.Logging.ElasticLoggingConfig)
 		if eErr != nil {
 			return eErr
 		}
-		m.taskLogBackend = es
-	default:
-		panic("unsupported logging backend")
-	}
-
-	switch {
-	case m.config.Logging.DefaultLoggingConfig != nil:
-		m.trialLogBackend = m.db
-	case m.config.Logging.ElasticLoggingConfig != nil:
-		es, eErr := elastic.Setup(*m.config.Logging.ElasticLoggingConfig)
-		if eErr != nil {
-			return eErr
-		}
 		m.trialLogBackend = es
+		m.taskLogBackend = es
 	default:
 		panic("unsupported logging backend")
 	}
