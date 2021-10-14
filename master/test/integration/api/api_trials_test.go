@@ -284,15 +284,6 @@ func trialProfilerMetricsAvailableSeriesTests(
 	}
 }
 
-func TestTrialLogFollowingPostgres(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	_, _, cl, creds, err := testutils.RunMaster(ctx, nil)
-	defer cancel()
-	assert.NilError(t, err, "failed to start master")
-
-	trialLogFollowingTests(t, ctx, creds, cl, pgDB)
-}
-
 func assertStringContains(t *testing.T, actual, expected string) {
 	assert.Assert(t, strings.Contains(actual, expected),
 		fmt.Sprintf("%s not in %s", expected, actual))

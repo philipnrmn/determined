@@ -69,5 +69,6 @@ exec jupyter lab --ServerApp.port=${NOTEBOOK_PORT} \
                  --ServerApp.open_browser=False \
                  --ServerApp.token="" \
                  --ServerApp.trust_xheaders=True 2>&1 \
+    # Important notebook logs come through stderr.
     2> >(tee -p >("$DET_PYTHON_EXECUTABLE" /run/determined/check_ready_logs.py --ready-regex "${READINESS_REGEX}") >&2)
 

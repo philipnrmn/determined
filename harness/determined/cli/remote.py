@@ -13,7 +13,6 @@ from .command import (
     VOLUME_DESC,
     launch_command,
     parse_config,
-    render_event_stream,
 )
 
 
