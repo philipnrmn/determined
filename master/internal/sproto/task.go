@@ -185,8 +185,9 @@ func (ev *Event) ToTaskLog() model.TaskLog {
 	}
 
 	return model.TaskLog{
-		Level:     ptrs.StringPtr(model.LogLevelInfo),
-		Timestamp: &ev.Time,
-		Log:       message,
+		Level:       ptrs.StringPtr(model.LogLevelInfo),
+		ContainerID: &ev.ContainerID,
+		Timestamp:   &ev.Time,
+		Log:         message,
 	}
 }

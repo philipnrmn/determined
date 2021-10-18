@@ -4,7 +4,6 @@ import (
 	"container/ring"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/determined-ai/determined/master/internal/sproto"
 
@@ -46,11 +45,8 @@ func (e *eventManager) Receive(ctx *actor.Context) error {
 	switch msg := ctx.Message().(type) {
 	case actor.PreStart, actor.PostStop:
 	case sproto.Event:
-		msg.ParentID = ctx.Self().Address().Parent().Local()
 		msg.ID = uuid.New().String()
 		msg.Seq = e.seq
-		msg.Time = time.Now().UTC()
-		msg.Description = e.description
 		e.seq++
 
 		// Add the event to the event buffer.

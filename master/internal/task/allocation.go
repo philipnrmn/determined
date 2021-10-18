@@ -633,18 +633,20 @@ func (a *Allocation) enrichLog(log model.TaskLog) model.TaskLog {
 }
 
 func (a *Allocation) sendEvent(ctx *actor.Context, ev sproto.Event) {
-	// TODO(XXX): Dedup this logic with event manager and generally clean-up/unify
-	// model.TaskLog / sproto.Event / aproto.ContainerLog / sproto.ContainerLog and/or
-	// their conversions.
-	ev.Description = a.req.Name
-	ev.ParentID = ctx.Self().Parent().Address().Local()
-	ev.State = a.state.String()
-	ev.IsReady = a.serviceReady
-	ev.Time = time.Now().UTC()
+	ev = a.enrichEvent(ctx, ev)
 	ctx.Tell(a.logger, a.enrichLog(ev.ToTaskLog()))
 	if a.req.StreamEvents != nil {
 		ctx.Tell(a.req.StreamEvents.To, ev)
 	}
+}
+
+func (a *Allocation) enrichEvent(ctx *actor.Context, ev sproto.Event) sproto.Event {
+	ev.ParentID = ctx.Self().Parent().Address().Local()
+	ev.State = a.state.String()
+	ev.IsReady = a.serviceReady
+	ev.Time = time.Now().UTC()
+	ev.Description = a.req.Name
+	return ev
 }
 
 // State returns a deepcopy of our state.

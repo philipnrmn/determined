@@ -237,7 +237,7 @@ type TaskLog struct {
 }
 
 // Resolve resolves the flat version of the log that UIs have shown historically.
-// TODO(XXX): Should we just.. stop doing this? And send the log as is and let the
+// TODO(task-unif): Should we just.. stop doing this? And send the log as is and let the
 // UIs handle display (yes, IMO).
 func (t *TaskLog) Resolve() {
 	var timestamp string

@@ -91,7 +91,6 @@ func (a *apiServer) NotebookLogs(
 	go a.taskLogs(ctx, &apiv1.TaskLogsRequest{
 		TaskId: req.NotebookId,
 		Limit:  req.Limit,
-		// TODO(XXX): Offset is no longer supported.
 		Follow: req.Follow,
 	}, res)
 

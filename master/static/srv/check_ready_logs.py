@@ -49,4 +49,5 @@ if __name__ == "__main__":
     parser.add_argument('--ready-regex', type=str, help='the pattern to match', required=True)
     args = parser.parse_args()
 
-    main(re.compile(args.ready_regex))
+    ready_regex = re.compile(args.ready_regex)
+    main(ready_regex)

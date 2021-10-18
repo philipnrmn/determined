@@ -10,10 +10,10 @@ from tests import config as conf
 from tests import experiment as exp
 
 
-@pytest.mark.e2e_cpu  # type: ignore
-@pytest.mark.e2e_cpu_elastic  # type: ignore
-@pytest.mark.e2e_gpu  # type: ignore
-@pytest.mark.timeout(300)  # type: ignore
+@pytest.mark.e2e_cpu
+@pytest.mark.e2e_cpu_elastic
+@pytest.mark.e2e_gpu
+@pytest.mark.timeout(300)
 def test_trial_logs() -> None:
     # TODO: refactor tests to not use cli singleton auth.
     master_url = conf.make_master_url()
@@ -33,11 +33,11 @@ def test_trial_logs() -> None:
     check_logs(master_url, task_id, log_regex, api.task_logs, api.task_log_fields)
 
 
-@pytest.mark.e2e_cpu  # type: ignore
-@pytest.mark.e2e_cpu_elastic  # type: ignore
-@pytest.mark.e2e_gpu  # type: ignore
-@pytest.mark.timeout(300)  # type: ignore
-@pytest.mark.parametrize(  # type: ignore
+@pytest.mark.e2e_cpu
+@pytest.mark.e2e_cpu_elastic
+@pytest.mark.e2e_gpu
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize(
     "task_type,task_config,task_extras,log_regex",
     [
         (command.TaskTypeCommand, {"entrypoint": ["echo", "hello"]}, {}, re.compile("^.*hello.*$")),
