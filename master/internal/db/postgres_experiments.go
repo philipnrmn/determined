@@ -1506,8 +1506,8 @@ WHERE trials.experiment_id = $1
 // ExperimentTrialAndTaskIDs returns the trial and task IDs for the experiment.
 func (db *PgDB) ExperimentTrialAndTaskIDs(expID int) ([]int, []model.TaskID, error) {
 	var trialIDRows []struct {
-		ID     int
-		TaskID model.TaskID
+		ID     int          `db:"id"`
+		TaskID model.TaskID `db:"task_id"`
 	}
 	if err := db.queryRows(`
 SELECT id, task_id
