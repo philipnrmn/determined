@@ -59,12 +59,15 @@ func (a *agent) detect() error {
 
 // detectCPUs returns the list of available CPUs; all the cores are returned as a single device.
 func detectCPUs() ([]device.Device, error) {
-	switch cpuInfo, err := cpu.Info(); {
-	case err != nil:
-		return nil, errors.Wrap(err, "error while gathering CPU info")
-	case len(cpuInfo) == 0:
-		return nil, errors.New("no CPUs detected")
+	switch cpuInfo, _ := cpu.Info(); {
+	// case err != nil:
+	// 	return nil, errors.Wrap(err, "error while gathering CPU info")
+	// case len(cpuInfo) == 0:
+	// 	return nil, errors.New("no CPUs detected")
 	default:
+		if len(cpuInfo) == 0 {
+			cpuInfo = append(cpuInfo, cpu.InfoStat{VendorID: "M1"})
+		}
 		brand := fmt.Sprintf("%s x %d physical cores", cpuInfo[0].ModelName, cpuInfo[0].Cores)
 		uuid := cpuInfo[0].VendorID
 		return []device.Device{{ID: 0, Brand: brand, UUID: uuid, Type: device.CPU}}, nil
