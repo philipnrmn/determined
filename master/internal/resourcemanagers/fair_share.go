@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/determined-ai/determined/master/internal/job"
 	"github.com/determined-ai/determined/master/internal/sproto"
 	"github.com/determined-ai/determined/master/pkg/actor"
 	"github.com/determined-ai/determined/master/pkg/check"
+	"github.com/determined-ai/determined/master/pkg/model"
 )
 
 type fairShare struct{}
@@ -51,10 +53,8 @@ func (f *fairShare) Schedule(rp *ResourcePool) ([]*sproto.AllocateRequest, []*ac
 	return fairshareSchedule(rp.taskList, rp.groups, rp.agents, rp.fittingMethod)
 }
 
-func (f *fairShare) OrderedAllocations(
-	rp *ResourcePool,
-) (reqs []*sproto.AllocateRequest) {
-	return reqs
+func (f *fairShare) JobQInfo(rp *ResourcePool) map[model.JobID]*job.RMJobInfo {
+	return make(map[model.JobID]*job.RMJobInfo)
 }
 
 func fairshareSchedule(

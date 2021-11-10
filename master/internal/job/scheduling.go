@@ -1,14 +1,9 @@
-package sproto
+package job
 
-import (
-	"github.com/determined-ai/determined/master/pkg/model"
-	"github.com/determined-ai/determined/proto/pkg/jobv1"
-)
-
-// TODO here or in model/job.go
+import "github.com/determined-ai/determined/proto/pkg/jobv1"
 
 // SchedulingState denotes the scheduling state of a job and in order of its progression value.
-type SchedulingState uint8
+type SchedulingState uint8 // CHECK perhaps could be defined in resource manager. cyclic import
 
 const (
 	// SchedulingStateQueued denotes a queued job waiting to be scheduled.
@@ -33,15 +28,18 @@ func (s SchedulingState) Proto() jobv1.State {
 	}
 }
 
-// JobSummary contains information about a job for external display.
-type JobSummary struct {
-	//Job      model.Job
-	JobID          model.JobID
-	JobType        model.JobType
-	EntityID       string `json:"entity_id"`
-	State          SchedulingState
-	RequestedSlots int
-	AllocatedSlots int
+// SchedulingStateFromProto returns SchedulingState from proto representation.
+func SchedulingStateFromProto(state jobv1.State) SchedulingState {
+	switch state {
+	case jobv1.State_STATE_QUEUED:
+		return SchedulingStateQueued
+	case jobv1.State_STATE_SCHEDULED_BACKFILLED:
+		return SchedulingStateScheduledBackfilled
+	case jobv1.State_STATE_SCHEDULED:
+		return SchedulingStateScheduled
+	default:
+		panic("unexpected state")
+	}
 }
 
 // ScheduledStates provides a list of ScheduledStates that are considered scheduled.

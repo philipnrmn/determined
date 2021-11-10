@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/determined-ai/determined/master/internal/job"
 	"github.com/determined-ai/determined/master/internal/sproto"
 	"github.com/determined-ai/determined/master/pkg/actor"
 	cproto "github.com/determined-ai/determined/master/pkg/container"
@@ -30,16 +31,40 @@ func NewPriorityScheduler(config *SchedulerConfig) Scheduler {
 }
 
 func (p *priorityScheduler) Schedule(rp *ResourcePool) ([]*sproto.AllocateRequest, []*actor.Ref) {
-	ar := p.OrderedAllocations(rp)
-	// TODO remove me. for dev only.
-	logAllocRequests(ar, "ordered allocations")
 	return p.prioritySchedule(rp.taskList, rp.groups, rp.agents, rp.fittingMethod)
 }
 
-// OrderedAllocations sorts by expected allocation order at this point excluding backfills.
-func (p *priorityScheduler) OrderedAllocations(
-	rp *ResourcePool,
-) (reqs []*sproto.AllocateRequest) {
+func (p *priorityScheduler) createJobQInfo(
+	pending map[int]AllocReqs,
+	scheduled map[int]AllocReqs,
+) (job.AQueue, map[model.JobID]*actor.Ref) {
+	reqs := make(AllocReqs, 0)
+	// FIXME there is gotta be a friendlier version of this.
+	// can we stick to slices together quickly in Go?
+	readFromPrioToTask := func(aMap map[int]AllocReqs, out *AllocReqs) {
+		if out == nil {
+			panic("missing output array. (nil pointer)")
+		}
+		priorities := getOrderedPriorities(aMap)
+		for _, priority := range priorities {
+			*out = append(*out, aMap[priority]...)
+		}
+	}
+
+	readFromPrioToTask(scheduled, &reqs)
+	readFromPrioToTask(pending, &reqs)
+	jobQInfo, jobActors := mergeToJobQInfo(reqs)
+	return jobQInfo, jobActors
+}
+
+func (p *priorityScheduler) reportJobQInfo(pending map[int]AllocReqs, scheduled map[int]AllocReqs) {
+	jobQInfo, jobActors := p.createJobQInfo(pending, scheduled)
+	for jobID, jobActor := range jobActors {
+		jobActor.System().Tell(jobActor, jobQInfo[jobID])
+	}
+}
+
+func (p *priorityScheduler) JobQInfo(rp *ResourcePool) map[model.JobID]*job.RMJobInfo {
 	/*
 		compute a single numerical ordering for allocationreuqests that can be modified.
 		how do non-job tasks affect the queue and the user? how do does (eg gc) get scheduled in terms
@@ -59,21 +84,9 @@ func (p *priorityScheduler) OrderedAllocations(
 		sortTasksByPriorityAndPositionAndTimestamp(
 			rp.taskList, rp.groups, func(r *sproto.AllocateRequest) bool { return true })
 
-	// FIXME there is gotta be a friendlier version of this.
-	// can we stick to slices together quickly in Go?
-	readFromPrioToTask := func(aMap map[int]AllocReqs, out *AllocReqs) {
-		if out == nil {
-			panic("missing output array. (nil pointer)")
-		}
-		priorities := getOrderedPriorities(aMap)
-		for _, priority := range priorities {
-			*out = append(*out, aMap[priority]...)
-		}
-	}
+	jobQInfo, _ := p.createJobQInfo(priorityToPendingTasksMap, priorityToScheduledTaskMap)
 
-	readFromPrioToTask(priorityToScheduledTaskMap, &reqs)
-	readFromPrioToTask(priorityToPendingTasksMap, &reqs)
-	return reqs
+	return jobQInfo
 }
 
 func (p *priorityScheduler) prioritySchedule(
@@ -85,7 +98,6 @@ func (p *priorityScheduler) prioritySchedule(
 	toAllocate := make([]*sproto.AllocateRequest, 0)
 	toRelease := make([]*actor.Ref, 0)
 
-	// TODO consider agent labels
 	// Since labels are a hard scheduling constraint, process every label independently.
 	for label, agentsWithLabel := range splitAgentsByLabel(agents) {
 		// Schedule zero-slot and non-zero-slot tasks independently of each other, e.g., a lower priority
@@ -97,6 +109,13 @@ func (p *priorityScheduler) prioritySchedule(
 			)
 			toAllocate = append(toAllocate, allocate...)
 			toRelease = append(toRelease, release...)
+		}
+	}
+	if len(agents) == 0 { // report queue state if no agents are available
+		for _, zeroSlots := range []bool{false, true} {
+			priorityToPendingTasksMap, priorityToScheduledTaskMap :=
+				sortTasksByPriorityAndPositionAndTimestamp(taskList, groups, taskFilter("", zeroSlots))
+			p.reportJobQInfo(priorityToPendingTasksMap, priorityToScheduledTaskMap)
 		}
 	}
 
@@ -122,6 +141,7 @@ func (p *priorityScheduler) prioritySchedulerWithFilter(
 	priorityToPendingTasksMap, priorityToScheduledTaskMap :=
 		sortTasksByPriorityAndPositionAndTimestamp(taskList, groups, filter)
 
+	p.reportJobQInfo(priorityToPendingTasksMap, priorityToScheduledTaskMap)
 	localAgentsState := deepCopyAgents(agents)
 
 	// If there exist any tasks that cannot be scheduled, all the tasks of lower priorities
@@ -149,7 +169,7 @@ func (p *priorityScheduler) prioritySchedulerWithFilter(
 						continue
 					}
 					log.Debugf("scheduled task via backfilling: %s", allocatedTask.Name)
-					setJobState(allocatedTask, sproto.SchedulingStateScheduledBackfilled)
+					allocatedTask.State = job.SchedulingStateScheduledBackfilled
 					toAllocate = append(toAllocate, allocatedTask)
 				}
 			}
@@ -285,10 +305,10 @@ func sortTasksByPriorityAndPositionAndTimestamp(
 
 		assigned := taskList.GetAllocations(req.TaskActor)
 		if assigned == nil || len(assigned.Reservations) == 0 {
-			setJobState(req, sproto.SchedulingStateQueued)
+			req.State = job.SchedulingStateQueued
 			priorityToPendingTasksMap[*priority] = append(priorityToPendingTasksMap[*priority], req)
 		} else {
-			setJobState(req, sproto.SchedulingStateScheduled)
+			req.State = job.SchedulingStateScheduled
 			priorityToScheduledTaskMap[*priority] = append(priorityToScheduledTaskMap[*priority], req)
 		}
 	}

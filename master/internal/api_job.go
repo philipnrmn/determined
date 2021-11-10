@@ -2,62 +2,53 @@ package internal
 
 import (
 	"context"
+	"sort"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/determined-ai/determined/master/pkg/model"
 
-	"github.com/determined-ai/determined/master/internal/resourcemanagers"
+	"github.com/determined-ai/determined/master/internal/job"
 	"github.com/determined-ai/determined/master/internal/sproto"
 	"github.com/determined-ai/determined/master/pkg/actor"
 	"github.com/determined-ai/determined/proto/pkg/apiv1"
 	"github.com/determined-ai/determined/proto/pkg/jobv1"
 )
 
-//var notImplementedError = status.Error(codes.Unimplemented, "API not implemented")
-
 // GetJobs retrieves a list of jobs for a resource pool.
 func (a *apiServer) GetJobs(
 	_ context.Context, req *apiv1.GetJobsRequest,
 ) (resp *apiv1.GetJobsResponse, err error) {
-	resp = &apiv1.GetJobsResponse{
-		Jobs: make([]*jobv1.Job, 0),
-	}
-
 	if req.ResourcePool == "" {
 		return nil, status.Error(codes.InvalidArgument, "missing resource_pool parameter")
 	}
 
-	switch {
-	case sproto.UseAgentRM(a.m.system):
-		err = a.actorRequest(
-			sproto.AgentRMAddr.Child(req.ResourcePool), resourcemanagers.GetJobOrder{}, &resp.Jobs,
-		)
-	case sproto.UseK8sRM(a.m.system):
-		err = a.actorRequest(sproto.K8sRMAddr, resourcemanagers.GetJobOrder{}, &resp.Jobs)
-	default:
-		err = status.Error(codes.NotFound, "cannot find the appropriate resource manager")
-	}
-	if err != nil {
+	actorResp := a.m.system.AskAt(job.JobsActorAddr, req)
+	if err := actorResp.Error(); err != nil {
 		return nil, err
 	}
-
-	if req.OrderBy == apiv1.OrderBy_ORDER_BY_ASC {
-		// Reverese the list.
-		for i, j := 0, len(resp.Jobs)-1; i < j; i, j = i+1, j-1 {
-			resp.Jobs[i], resp.Jobs[j] = resp.Jobs[j], resp.Jobs[i]
-		}
+	jobs, ok := actorResp.Get().([]*jobv1.Job)
+	if !ok {
+		return nil, status.Error(codes.Internal, "unexpected response from actor")
 	}
+
+	// a.sort(jobs, req.OrderBy, KEY
+	sort.SliceStable(jobs, func(i, j int) bool {
+		if req.OrderBy == apiv1.OrderBy_ORDER_BY_ASC {
+			i, j = j, i
+		}
+		if jobs[i].Summary == nil || jobs[j].Summary == nil {
+			return false // CHECK
+		}
+		return jobs[i].Summary.JobsAhead < jobs[j].Summary.JobsAhead
+	})
 
 	if req.Pagination == nil {
 		req.Pagination = &apiv1.PaginationRequest{}
 	}
-	/* TODO user information
-	2. persist use with job info. not all jobs are persisted.
-	3. allocateReq.taskActor => a msg to get the task user/owner.
-	would need to bubble up incase of eg trial actor to experiment
-	*/
+
+	resp = &apiv1.GetJobsResponse{Jobs: jobs}
 	return resp, a.paginate(&resp.Pagination, &resp.Jobs, req.Pagination.Offset, req.Pagination.Limit)
 }
 
@@ -85,7 +76,7 @@ func (a *apiServer) GetJobQueueStats(
 		stats := jobv1.QueueStats{}
 		qStats := apiv1.RPQueueStat{ResourcePool: rpAddr.Local()}
 		err = a.actorRequest(
-			rpAddr, resourcemanagers.GetJobQStats{}, &stats,
+			rpAddr, job.GetJobQStats{}, &stats,
 		)
 		if err != nil {
 			return nil, err
@@ -106,7 +97,7 @@ func (a *apiServer) UpdateJobQueue(
 		qPosition := float64(update.GetQueuePosition())
 		priority := int(update.GetPriority())
 		weight := float64(update.GetWeight())
-		msg := resourcemanagers.SetJobOrder{
+		msg := job.SetJobOrder{
 			QPosition: qPosition,
 			Priority:  &priority,
 			Weight:    weight,

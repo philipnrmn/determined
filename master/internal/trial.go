@@ -201,17 +201,11 @@ func (t *trial) maybeAllocateTask(ctx *actor.Context) error {
 		name = fmt.Sprintf("Trial (Experiment %d)", t.experimentID)
 	}
 
-	jobSummary := sproto.JobSummary{
-		JobID:    t.jobID,
-		EntityID: fmt.Sprint(t.experimentID),
-		JobType:  model.JobTypeExperiment,
-	}
-
 	ctx.Log().Info("decided to allocate trial")
 	t.allocation, _ = ctx.ActorOf(t.runID, taskAllocator(sproto.AllocateRequest{
 		AllocationID: model.NewAllocationID(fmt.Sprintf("%s.%d", t.taskID, t.runID)),
 		TaskID:       t.taskID,
-		Job:          &jobSummary,
+		JobID:        &t.jobID,
 		Name:         name,
 		TaskActor:    ctx.Self(),
 		Group:        ctx.Self().Parent(),
@@ -223,7 +217,7 @@ func (t *trial) maybeAllocateTask(ctx *actor.Context) error {
 			SingleAgent: false,
 		},
 
-		Preemptible:  true,
+		Preemptible:  true, // TODO should this read from config files?
 		DoRendezvous: true,
 	}, t.db, t.rm))
 	return nil

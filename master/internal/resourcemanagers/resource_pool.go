@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/determined-ai/determined/master/internal/job"
 	"github.com/determined-ai/determined/master/internal/provisioner"
 	"github.com/determined-ai/determined/master/internal/sproto"
 	"github.com/determined-ai/determined/master/internal/telemetry"
@@ -245,10 +246,9 @@ func (rp *ResourcePool) Receive(ctx *actor.Context) error {
 		return rp.receiveRequestMsg(ctx)
 
 	case
-		GetJobOrder,
-		SetJobOrder,
-		GetJobQStats,
-		GetJobSummary:
+		job.GetJobQ,
+		job.SetJobOrder,
+		job.GetJobQStats:
 		return rp.receiveJobQueueMsg(ctx)
 
 	case sproto.GetTaskHandler:
@@ -281,6 +281,12 @@ func (rp *ResourcePool) Receive(ctx *actor.Context) error {
 			}
 			rp.sendScalingInfo(ctx)
 		}
+		// jobQ := rp.scheduler.JobQInfo(rp) // OPTIMIZE: integrate into Schedule() call
+		// // FIXME why can't we TellAt on Context?
+		// ctx.Self().System().TellAt(job.JobsActorAddr, job.SetJobQ{
+		// 	Identifier: rp.config.PoolName,
+		// 	Queue:      jobQ,
+		// })
 		rp.reschedule = false
 		reschedule = false
 		actors.NotifyAfter(ctx, actionCoolDown, schedulerTick{})
@@ -348,12 +354,11 @@ func (rp *ResourcePool) receiveAgentMsg(ctx *actor.Context) error {
 
 func (rp *ResourcePool) receiveJobQueueMsg(ctx *actor.Context) error {
 	switch msg := ctx.Message().(type) {
-	case GetJobOrder:
-		ctx.Respond(getV1Jobs(rp))
-	case SetJobOrder:
+	case job.SetJobOrder:
 		for it := rp.taskList.iterator(); it.next(); {
 			req := it.value()
-			if req.Job.JobID == msg.JobID {
+			// TODO nit: early break instead nesting?
+			if req.JobID != nil && *req.JobID == msg.JobID {
 				group := rp.getOrCreateGroup(ctx, req.Group)
 				if msg.QPosition > 0 {
 					group.qPosition = msg.QPosition
@@ -379,11 +384,10 @@ func (rp *ResourcePool) receiveJobQueueMsg(ctx *actor.Context) error {
 			}
 		}
 		// TODO: add a ctx.Respond so that the API doesn't return an error to the user
-	case GetJobSummary:
-		resp := getV1JobSummary(rp, msg.JobID, rp.scheduler.OrderedAllocations(rp))
-		ctx.Respond(resp)
-	case GetJobQStats:
+	case job.GetJobQStats:
 		ctx.Respond(*jobStats(rp))
+	case job.GetJobQ:
+		ctx.Respond(rp.scheduler.JobQInfo(rp))
 	default:
 		return actor.ErrUnexpectedMessage(ctx)
 	}
